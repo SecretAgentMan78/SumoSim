@@ -1,0 +1,296 @@
+{
+  "hoshoryu": {
+    "api_id": 19,
+    "new_id": "19",
+    "shikona": "Hoshoryu",
+    "shikona_jp": "豊昇龍　智勝",
+    "old_id": "hoshoryu"
+  },
+  "aonishiki": {
+    "api_id": 8854,
+    "new_id": "8854",
+    "shikona": "Aonishiki",
+    "shikona_jp": "安青錦　新大",
+    "old_id": "aonishiki"
+  },
+  "kirishima": {
+    "api_id": 7,
+    "new_id": "7",
+    "shikona": "Kirishima",
+    "shikona_jp": "霧島　鐵力",
+    "old_id": "kirishima"
+  },
+  "wakamotoharu": {
+    "api_id": 13,
+    "new_id": "13",
+    "shikona": "Wakamotoharu",
+    "shikona_jp": "若元春　港",
+    "old_id": "wakamotoharu"
+  },
+  "wakatakakage": {
+    "api_id": 12,
+    "new_id": "12",
+    "shikona": "Wakatakakage",
+    "shikona_jp": "若隆景　渥",
+    "old_id": "wakatakakage"
+  },
+  "fujinokawa": {
+    "api_id": 615,
+    "new_id": "615",
+    "shikona": "Fujinokawa",
+    "shikona_jp": "藤ノ川　成剛",
+    "old_id": "fujinokawa"
+  },
+  "hiradoumi": {
+    "api_id": 24,
+    "new_id": "24",
+    "shikona": "Hiradoumi",
+    "shikona_jp": "平戸海　雄貴",
+    "old_id": "hiradoumi"
+  },
+  "daieisho": {
+    "api_id": 9,
+    "new_id": "9",
+    "shikona": "Daieisho",
+    "shikona_jp": "大栄翔　勇人",
+    "old_id": "daieisho"
+  },
+  "abi": {
+    "api_id": 22,
+    "new_id": "22",
+    "shikona": "Abi",
+    "shikona_jp": "阿炎　政虎",
+    "old_id": "abi"
+  },
+  "ichiyamamoto": {
+    "api_id": 11,
+    "new_id": "11",
+    "shikona": "Ichiyamamoto",
+    "shikona_jp": "一山本　大生",
+    "old_id": "ichiyamamoto"
+  },
+  "oshoma": {
+    "api_id": 61,
+    "new_id": "61",
+    "shikona": "Oshoma",
+    "shikona_jp": "欧勝馬　出気",
+    "old_id": "oshoma"
+  },
+  "ura": {
+    "api_id": 28,
+    "new_id": "28",
+    "shikona": "Ura",
+    "shikona_jp": "宇良　和輝",
+    "old_id": "ura"
+  },
+  "tokihayate": {
+    "api_id": 83,
+    "new_id": "83",
+    "shikona": "Tokihayate",
+    "shikona_jp": "時疾風　秀喜",
+    "old_id": "tokihayate"
+  },
+  "gonoyama": {
+    "api_id": 56,
+    "new_id": "56",
+    "shikona": "Gonoyama",
+    "shikona_jp": "豪ノ山　登輝",
+    "old_id": "gonoyama"
+  },
+  "shishi": {
+    "api_id": 86,
+    "new_id": "86",
+    "shikona": "Shishi",
+    "shikona_jp": "獅司　大",
+    "old_id": "shishi"
+  },
+  "asakoryu": {
+    "api_id": 164,
+    "new_id": "164",
+    "shikona": "Asakoryu",
+    "shikona_jp": "朝紅龍　琢馬",
+    "old_id": "asakoryu"
+  },
+  "tobizaru": {
+    "api_id": 21,
+    "new_id": "21",
+    "shikona": "Tobizaru",
+    "shikona_jp": "翔猿　正也",
+    "old_id": "tobizaru"
+  },
+  "chiyoshoma": {
+    "api_id": 39,
+    "new_id": "39",
+    "shikona": "Chiyoshoma",
+    "shikona_jp": "千代翔馬　富士雄",
+    "old_id": "chiyoshoma"
+  },
+  "midorifuji": {
+    "api_id": 34,
+    "new_id": "34",
+    "shikona": "Midorifuji",
+    "shikona_jp": "翠富士　一成",
+    "old_id": "midorifuji"
+  },
+  "asahakuryu": {
+    "api_id": 607,
+    "new_id": "607",
+    "shikona": "Asahakuryu",
+    "shikona_jp": "朝白龍　太郎",
+    "old_id": "asahakuryu"
+  },
+  "fujiryoga": {
+    "api_id": 9051,
+    "new_id": "9051",
+    "shikona": "Fujiryoga",
+    "shikona_jp": "藤凌駕　雅治",
+    "old_id": "fujiryoga"
+  },
+  "onosato": {
+    "api_id": 8850,
+    "new_id": "8850",
+    "shikona": "Onosato",
+    "shikona_jp": "大の里　泰輝",
+    "old_id": "onosato"
+  },
+  "kotozakura": {
+    "api_id": 20,
+    "new_id": "20",
+    "shikona": "Kotozakura",
+    "shikona_jp": "琴櫻　将傑",
+    "old_id": "kotozakura"
+  },
+  "takayasu": {
+    "api_id": 44,
+    "new_id": "44",
+    "shikona": "Takayasu",
+    "shikona_jp": "高安　晃",
+    "old_id": "takayasu"
+  },
+  "atamifuji": {
+    "api_id": 74,
+    "new_id": "74",
+    "shikona": "Atamifuji",
+    "shikona_jp": "熱海富士　朔太郎",
+    "old_id": "atamifuji"
+  },
+  "yoshinofuji": {
+    "api_id": 8857,
+    "new_id": "8857",
+    "shikona": "Yoshinofuji",
+    "shikona_jp": "義ノ富士　直哉",
+    "old_id": "yoshinofuji"
+  },
+  "churanoumi": {
+    "api_id": 71,
+    "new_id": "71",
+    "shikona": "Churanoumi",
+    "shikona_jp": "美ノ海　義久",
+    "old_id": "churanoumi"
+  },
+  "oho": {
+    "api_id": 41,
+    "new_id": "41",
+    "shikona": "Oho",
+    "shikona_jp": "王鵬　幸之介",
+    "old_id": "oho"
+  },
+  "takanosho": {
+    "api_id": 37,
+    "new_id": "37",
+    "shikona": "Takanosho",
+    "shikona_jp": "隆の勝　伸明",
+    "old_id": "takanosho"
+  },
+  "kotoshoho": {
+    "api_id": 8,
+    "new_id": "8",
+    "shikona": "Kotoshoho",
+    "shikona_jp": "琴勝峰　吉成",
+    "old_id": "kotoshoho"
+  },
+  "onokatsu": {
+    "api_id": 8853,
+    "new_id": "8853",
+    "shikona": "Onokatsu",
+    "shikona_jp": "阿武剋　一弘",
+    "old_id": "onokatsu"
+  },
+  "hakunofuji": {
+    "api_id": 3,
+    "new_id": "3",
+    "shikona": "Hakunofuji",
+    "shikona_jp": "伯乃富士　哲也",
+    "old_id": "hakunofuji"
+  },
+  "shodai": {
+    "api_id": 33,
+    "new_id": "33",
+    "shikona": "Shodai",
+    "shikona_jp": "正代　直也",
+    "old_id": "shodai"
+  },
+  "tamawashi": {
+    "api_id": 14,
+    "new_id": "14",
+    "shikona": "Tamawashi",
+    "shikona_jp": "玉鷲　一朗",
+    "old_id": "tamawashi"
+  },
+  "roga": {
+    "api_id": 55,
+    "new_id": "55",
+    "shikona": "Roga",
+    "shikona_jp": "狼雅　外喜義",
+    "old_id": "roga"
+  },
+  "oshoumi": {
+    "api_id": 95,
+    "new_id": "95",
+    "shikona": "Oshoumi",
+    "shikona_jp": "欧勝海　成矢",
+    "old_id": "oshoumi"
+  },
+  "asanoyama": {
+    "api_id": 2,
+    "new_id": "2",
+    "shikona": "Asanoyama",
+    "shikona_jp": "朝乃山　広暉",
+    "old_id": "asanoyama"
+  },
+  "fujiseiun": {
+    "api_id": 82,
+    "new_id": "82",
+    "shikona": "Fujiseiun",
+    "shikona_jp": "藤青雲　龍輝",
+    "old_id": "fujiseiun"
+  },
+  "nishikifuji": {
+    "api_id": 40,
+    "new_id": "40",
+    "shikona": "Nishikifuji",
+    "shikona_jp": "錦富士　隆聖",
+    "old_id": "nishikifuji"
+  },
+  "mitakeumi": {
+    "api_id": 26,
+    "new_id": "26",
+    "shikona": "Mitakeumi",
+    "shikona_jp": "御嶽海　久司",
+    "old_id": "mitakeumi"
+  },
+  "kinbozan": {
+    "api_id": 50,
+    "new_id": "50",
+    "shikona": "Kinbozan",
+    "shikona_jp": "金峰山　晴樹",
+    "old_id": "kinbozan"
+  },
+  "kotoeiho": {
+    "api_id": 112,
+    "new_id": "112",
+    "shikona": "Kotoeiho",
+    "shikona_jp": "琴栄峰　央起",
+    "old_id": "kotoeiho"
+  }
+}

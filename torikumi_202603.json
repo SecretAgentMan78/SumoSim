@@ -1,0 +1,2016 @@
+{
+  "basho_id": "202603",
+  "scraped_at": "2026-03-17T02:55:04.369131",
+  "days": {
+    "1": [
+      {
+        "east_id": "ryuden",
+        "east_shikona": "Ryuden",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "kinbozan",
+        "winner_shikona": "Kinbozan",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "mitakeumi",
+        "winner_shikona": "Mitakeumi",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "nishikifuji",
+        "winner_shikona": "Nishikifuji",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiseiun",
+        "east_shikona": "Fujiseiun",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "tobizaru",
+        "west_shikona": "Tobizaru",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "shishi",
+        "winner_shikona": "Shishi",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "tokihayate",
+        "winner_shikona": "Tokihayate",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "ura",
+        "winner_shikona": "Ura",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "hakunofuji",
+        "west_shikona": "Hakunofuji",
+        "winner_id": "oshoma",
+        "winner_shikona": "Oshoma",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "onokatsu",
+        "west_shikona": "Onokatsu",
+        "winner_id": "ichiyamamoto",
+        "winner_shikona": "Ichiyamamoto",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "abi",
+        "east_shikona": "Abi",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "hiradoumi",
+        "winner_shikona": "Hiradoumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "churanoumi",
+        "east_shikona": "Churanoumi",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "uwatedashinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "fujinokawa",
+        "west_shikona": "Fujinokawa",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "yoshinofuji",
+        "east_shikona": "Yoshinofuji",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "kotozakura",
+        "winner_shikona": "Kotozakura",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "wakamotoharu",
+        "west_shikona": "Wakamotoharu",
+        "winner_id": "aonishiki",
+        "winner_shikona": "Aonishiki",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "onosato",
+        "west_shikona": "Onosato",
+        "winner_id": "wakatakakage",
+        "winner_shikona": "Wakatakakage",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      }
+    ],
+    "2": [
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "sadanoumi",
+        "west_shikona": "Sadanoumi",
+        "winner_id": "fujiryoga",
+        "winner_shikona": "Fujiryoga",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kinbozan",
+        "east_shikona": "Kinbozan",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "mitakeumi",
+        "winner_shikona": "Mitakeumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "chiyoshoma",
+        "west_shikona": "Chiyoshoma",
+        "winner_id": "chiyoshoma",
+        "winner_shikona": "Chiyoshoma",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "nishikifuji",
+        "east_shikona": "Nishikifuji",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "nishikifuji",
+        "winner_shikona": "Nishikifuji",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "asakoryu",
+        "west_shikona": "Asakoryu",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asanoyama",
+        "east_shikona": "Asanoyama",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "asanoyama",
+        "winner_shikona": "Asanoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "gonoyama",
+        "west_shikona": "Gonoyama",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "roga",
+        "east_shikona": "Roga",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "roga",
+        "winner_shikona": "Roga",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "ura",
+        "west_shikona": "Ura",
+        "winner_id": "ura",
+        "winner_shikona": "Ura",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "shodai",
+        "east_shikona": "Shodai",
+        "west_id": "hakunofuji",
+        "west_shikona": "Hakunofuji",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "fusen",
+        "is_complete": true
+      },
+      {
+        "east_id": "abi",
+        "east_shikona": "Abi",
+        "west_id": "ichiyamamoto",
+        "west_shikona": "Ichiyamamoto",
+        "winner_id": "ichiyamamoto",
+        "winner_shikona": "Ichiyamamoto",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "onokatsu",
+        "east_shikona": "Onokatsu",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "fusen",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "daieisho",
+        "west_shikona": "Daieisho",
+        "winner_id": "hiradoumi",
+        "winner_shikona": "Hiradoumi",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "takanosho",
+        "east_shikona": "Takanosho",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "churanoumi",
+        "winner_shikona": "Churanoumi",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujinokawa",
+        "east_shikona": "Fujinokawa",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "yoshinofuji",
+        "winner_shikona": "Yoshinofuji",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "kotozakura",
+        "winner_shikona": "Kotozakura",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "wakatakakage",
+        "west_shikona": "Wakatakakage",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "okuridashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "atamifuji",
+        "east_shikona": "Atamifuji",
+        "west_id": "onosato",
+        "west_shikona": "Onosato",
+        "winner_id": "atamifuji",
+        "winner_shikona": "Atamifuji",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      }
+    ],
+    "3": [
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": "fujiryoga",
+        "winner_shikona": "Fujiryoga",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asasuiryu",
+        "east_shikona": "Asasuiryu",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "kinbozan",
+        "winner_shikona": "Kinbozan",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "chiyoshoma",
+        "winner_shikona": "Chiyoshoma",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "tobizaru",
+        "winner_shikona": "Tobizaru",
+        "kimarite": "isamiashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoumi",
+        "east_shikona": "Oshoumi",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "roga",
+        "winner_shikona": "Roga",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "shishi",
+        "west_shikona": "Shishi",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tamawashi",
+        "east_shikona": "Tamawashi",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "tokihayate",
+        "west_shikona": "Tokihayate",
+        "winner_id": "ura",
+        "winner_shikona": "Ura",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "abi",
+        "east_shikona": "Abi",
+        "west_id": "oshoma",
+        "west_shikona": "Oshoma",
+        "winner_id": "oshoma",
+        "winner_shikona": "Oshoma",
+        "kimarite": "fusen",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "oho",
+        "winner_shikona": "Oho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "churanoumi",
+        "east_shikona": "Churanoumi",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "kotozakura",
+        "winner_shikona": "Kotozakura",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "wakatakakage",
+        "west_shikona": "Wakatakakage",
+        "winner_id": "aonishiki",
+        "winner_shikona": "Aonishiki",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujinokawa",
+        "east_shikona": "Fujinokawa",
+        "west_id": "onosato",
+        "west_shikona": "Onosato",
+        "winner_id": "fujinokawa",
+        "winner_shikona": "Fujinokawa",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "kubinage",
+        "is_complete": true
+      }
+    ],
+    "4": [
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "fujiryoga",
+        "west_shikona": "Fujiryoga",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kotoeiho",
+        "east_shikona": "Kotoeiho",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "mitakeumi",
+        "east_shikona": "Mitakeumi",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "nishikifuji",
+        "winner_shikona": "Nishikifuji",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "asanoyama",
+        "winner_shikona": "Asanoyama",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "tokihayate",
+        "winner_shikona": "Tokihayate",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "shishi",
+        "winner_shikona": "Shishi",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "ura",
+        "west_shikona": "Ura",
+        "winner_id": "daieisho",
+        "winner_shikona": "Daieisho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "tsukihiza",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "ichiyamamoto",
+        "west_shikona": "Ichiyamamoto",
+        "winner_id": "hiradoumi",
+        "winner_shikona": "Hiradoumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "kotoshoho",
+        "east_shikona": "Kotoshoho",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "atamifuji",
+        "winner_shikona": "Atamifuji",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "wakatakakage",
+        "west_shikona": "Wakatakakage",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "churanoumi",
+        "winner_shikona": "Churanoumi",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "takayasu",
+        "east_shikona": "Takayasu",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "fujinokawa",
+        "west_shikona": "Fujinokawa",
+        "winner_id": "fujinokawa",
+        "winner_shikona": "Fujinokawa",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "yoshinofuji",
+        "east_shikona": "Yoshinofuji",
+        "west_id": "onosato",
+        "west_shikona": "Onosato",
+        "winner_id": "yoshinofuji",
+        "winner_shikona": "Yoshinofuji",
+        "kimarite": "fusen",
+        "is_complete": true
+      }
+    ],
+    "5": [
+      {
+        "east_id": "kotoeiho",
+        "east_shikona": "Kotoeiho",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "fujiryoga",
+        "west_shikona": "Fujiryoga",
+        "winner_id": "fujiryoga",
+        "winner_shikona": "Fujiryoga",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kinbozan",
+        "east_shikona": "Kinbozan",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "kinbozan",
+        "winner_shikona": "Kinbozan",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "asahakuryu",
+        "west_shikona": "Asahakuryu",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "nishikifuji",
+        "east_shikona": "Nishikifuji",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "asanoyama",
+        "winner_shikona": "Asanoyama",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "abisetaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "shishi",
+        "west_shikona": "Shishi",
+        "winner_id": "shishi",
+        "winner_shikona": "Shishi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "tamawashi",
+        "winner_shikona": "Tamawashi",
+        "kimarite": "tsukidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "onokatsu",
+        "east_shikona": "Onokatsu",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "daieisho",
+        "winner_shikona": "Daieisho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "ichiyamamoto",
+        "winner_shikona": "Ichiyamamoto",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "hiradoumi",
+        "winner_shikona": "Hiradoumi",
+        "kimarite": "okuridashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "yoshinofuji",
+        "east_shikona": "Yoshinofuji",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "wakamotoharu",
+        "west_shikona": "Wakamotoharu",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "wakatakakage",
+        "winner_shikona": "Wakatakakage",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "fujinokawa",
+        "west_shikona": "Fujinokawa",
+        "winner_id": "aonishiki",
+        "winner_shikona": "Aonishiki",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      }
+    ],
+    "6": [
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "asahakuryu",
+        "west_shikona": "Asahakuryu",
+        "winner_id": "chiyoshoma",
+        "winner_shikona": "Chiyoshoma",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "nishikifuji",
+        "winner_shikona": "Nishikifuji",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "kinbozan",
+        "winner_shikona": "Kinbozan",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "mitakeumi",
+        "east_shikona": "Mitakeumi",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "asanoyama",
+        "winner_shikona": "Asanoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "oshoumi",
+        "winner_shikona": "Oshoumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "roga",
+        "east_shikona": "Roga",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "ura",
+        "west_shikona": "Ura",
+        "winner_id": "ichiyamamoto",
+        "winner_shikona": "Ichiyamamoto",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "onokatsu",
+        "west_shikona": "Onokatsu",
+        "winner_id": "onokatsu",
+        "winner_shikona": "Onokatsu",
+        "kimarite": "hansoku",
+        "is_complete": true
+      },
+      {
+        "east_id": "kotoshoho",
+        "east_shikona": "Kotoshoho",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "daieisho",
+        "winner_shikona": "Daieisho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "fujinokawa",
+        "west_shikona": "Fujinokawa",
+        "winner_id": "fujinokawa",
+        "winner_shikona": "Fujinokawa",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "wakatakakage",
+        "winner_shikona": "Wakatakakage",
+        "kimarite": "uwatedashinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "oho",
+        "winner_shikona": "Oho",
+        "kimarite": "kimedashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "atamifuji",
+        "east_shikona": "Atamifuji",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "atamifuji",
+        "winner_shikona": "Atamifuji",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "hiradoumi",
+        "west_shikona": "Hiradoumi",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      }
+    ],
+    "7": [
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "tomokaze",
+        "west_shikona": "Tomokaze",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "fujiryoga",
+        "winner_shikona": "Fujiryoga",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "chiyoshoma",
+        "winner_shikona": "Chiyoshoma",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "kotoeiho",
+        "east_shikona": "Kotoeiho",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "tobizaru",
+        "winner_shikona": "Tobizaru",
+        "kimarite": "katasukashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asanoyama",
+        "east_shikona": "Asanoyama",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "roga",
+        "winner_shikona": "Roga",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoumi",
+        "east_shikona": "Oshoumi",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "tamawashi",
+        "winner_shikona": "Tamawashi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "asakoryu",
+        "west_shikona": "Asakoryu",
+        "winner_id": "tokihayate",
+        "winner_shikona": "Tokihayate",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "shishi",
+        "winner_shikona": "Shishi",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "gonoyama",
+        "west_shikona": "Gonoyama",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hakunofuji",
+        "east_shikona": "Hakunofuji",
+        "west_id": "onokatsu",
+        "west_shikona": "Onokatsu",
+        "winner_id": "hakunofuji",
+        "winner_shikona": "Hakunofuji",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "churanoumi",
+        "winner_shikona": "Churanoumi",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "yoshinofuji",
+        "winner_shikona": "Yoshinofuji",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "takayasu",
+        "winner_shikona": "Takayasu",
+        "kimarite": "tsukidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "hiradoumi",
+        "west_shikona": "Hiradoumi",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujinokawa",
+        "east_shikona": "Fujinokawa",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "kotozakura",
+        "winner_shikona": "Kotozakura",
+        "kimarite": "oshitaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "atamifuji",
+        "winner_shikona": "Atamifuji",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      }
+    ],
+    "8": [
+      {
+        "east_id": "daiseizan",
+        "east_shikona": "Daiseizan",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": "mitakeumi",
+        "winner_shikona": "Mitakeumi",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "kotoeiho",
+        "east_shikona": "Kotoeiho",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "kotoeiho",
+        "winner_shikona": "Kotoeiho",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "fujiryoga",
+        "west_shikona": "Fujiryoga",
+        "winner_id": "fujiryoga",
+        "winner_shikona": "Fujiryoga",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "chiyoshoma",
+        "west_shikona": "Chiyoshoma",
+        "winner_id": "chiyoshoma",
+        "winner_shikona": "Chiyoshoma",
+        "kimarite": "tsukidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "tokihayate",
+        "east_shikona": "Tokihayate",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": "tokihayate",
+        "winner_shikona": "Tokihayate",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "ura",
+        "winner_shikona": "Ura",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoumi",
+        "east_shikona": "Oshoumi",
+        "west_id": "shodai",
+        "west_shikona": "Shodai",
+        "winner_id": "oshoumi",
+        "winner_shikona": "Oshoumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "oshoma",
+        "west_shikona": "Oshoma",
+        "winner_id": "oshoma",
+        "winner_shikona": "Oshoma",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "hakunofuji",
+        "east_shikona": "Hakunofuji",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "okuridashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "onokatsu",
+        "east_shikona": "Onokatsu",
+        "west_id": "oho",
+        "west_shikona": "Oho",
+        "winner_id": "oho",
+        "winner_shikona": "Oho",
+        "kimarite": "yoritaoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujinokawa",
+        "east_shikona": "Fujinokawa",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "yoshinofuji",
+        "winner_shikona": "Yoshinofuji",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "wakamotoharu",
+        "winner_shikona": "Wakamotoharu",
+        "kimarite": "kotenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "atamifuji",
+        "winner_shikona": "Atamifuji",
+        "kimarite": "kotenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "takanosho",
+        "winner_shikona": "Takanosho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hiradoumi",
+        "east_shikona": "Hiradoumi",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "hiradoumi",
+        "winner_shikona": "Hiradoumi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "daieisho",
+        "west_shikona": "Daieisho",
+        "winner_id": "daieisho",
+        "winner_shikona": "Daieisho",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      }
+    ],
+    "9": [
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": "asahakuryu",
+        "winner_shikona": "Asahakuryu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "fujiseiun",
+        "west_shikona": "Fujiseiun",
+        "winner_id": "fujiseiun",
+        "winner_shikona": "Fujiseiun",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asakoryu",
+        "east_shikona": "Asakoryu",
+        "west_id": "fujiryoga",
+        "west_shikona": "Fujiryoga",
+        "winner_id": "asakoryu",
+        "winner_shikona": "Asakoryu",
+        "kimarite": "shitatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "mitakeumi",
+        "east_shikona": "Mitakeumi",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": "mitakeumi",
+        "winner_shikona": "Mitakeumi",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": "shishi",
+        "winner_shikona": "Shishi",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": "tobizaru",
+        "winner_shikona": "Tobizaru",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": "gonoyama",
+        "winner_shikona": "Gonoyama",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "asanoyama",
+        "east_shikona": "Asanoyama",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": "asanoyama",
+        "winner_shikona": "Asanoyama",
+        "kimarite": "sukuinage",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "tokihayate",
+        "west_shikona": "Tokihayate",
+        "winner_id": "oshoma",
+        "winner_shikona": "Oshoma",
+        "kimarite": "uwatenage",
+        "is_complete": true
+      },
+      {
+        "east_id": "shodai",
+        "east_shikona": "Shodai",
+        "west_id": "onokatsu",
+        "west_shikona": "Onokatsu",
+        "winner_id": "shodai",
+        "winner_shikona": "Shodai",
+        "kimarite": "fusen",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "hakunofuji",
+        "west_shikona": "Hakunofuji",
+        "winner_id": "hakunofuji",
+        "winner_shikona": "Hakunofuji",
+        "kimarite": "uwatehineri",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": "kotoshoho",
+        "winner_shikona": "Kotoshoho",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "abi",
+        "east_shikona": "Abi",
+        "west_id": "churanoumi",
+        "west_shikona": "Churanoumi",
+        "winner_id": "abi",
+        "winner_shikona": "Abi",
+        "kimarite": "hatakikomi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": "wakatakakage",
+        "winner_shikona": "Wakatakakage",
+        "kimarite": "hikiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujinokawa",
+        "east_shikona": "Fujinokawa",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": "fujinokawa",
+        "winner_shikona": "Fujinokawa",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakamotoharu",
+        "east_shikona": "Wakamotoharu",
+        "west_id": "hiradoumi",
+        "west_shikona": "Hiradoumi",
+        "winner_id": "wakamotoharu",
+        "winner_shikona": "Wakamotoharu",
+        "kimarite": "utchari",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "daieisho",
+        "west_shikona": "Daieisho",
+        "winner_id": "kirishima",
+        "winner_shikona": "Kirishima",
+        "kimarite": "tsukiotoshi",
+        "is_complete": true
+      },
+      {
+        "east_id": "oho",
+        "east_shikona": "Oho",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": "kotozakura",
+        "winner_shikona": "Kotozakura",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": "aonishiki",
+        "winner_shikona": "Aonishiki",
+        "kimarite": "oshidashi",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": "hoshoryu",
+        "winner_shikona": "Hoshoryu",
+        "kimarite": "yorikiri",
+        "is_complete": true
+      }
+    ],
+    "10": [
+      {
+        "east_id": "chiyoshoma",
+        "east_shikona": "Chiyoshoma",
+        "west_id": "kotoeiho",
+        "west_shikona": "Kotoeiho",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakanosho",
+        "east_shikona": "Wakanosho",
+        "west_id": "nishikifuji",
+        "west_shikona": "Nishikifuji",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "tobizaru",
+        "east_shikona": "Tobizaru",
+        "west_id": "mitakeumi",
+        "west_shikona": "Mitakeumi",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiryoga",
+        "east_shikona": "Fujiryoga",
+        "west_id": "asanoyama",
+        "west_shikona": "Asanoyama",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "shishi",
+        "east_shikona": "Shishi",
+        "west_id": "kinbozan",
+        "west_shikona": "Kinbozan",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "asahakuryu",
+        "east_shikona": "Asahakuryu",
+        "west_id": "oshoumi",
+        "west_shikona": "Oshoumi",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "gonoyama",
+        "east_shikona": "Gonoyama",
+        "west_id": "asakoryu",
+        "west_shikona": "Asakoryu",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "fujiseiun",
+        "east_shikona": "Fujiseiun",
+        "west_id": "roga",
+        "west_shikona": "Roga",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "oshoma",
+        "east_shikona": "Oshoma",
+        "west_id": "tamawashi",
+        "west_shikona": "Tamawashi",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "ura",
+        "east_shikona": "Ura",
+        "west_id": "hakunofuji",
+        "west_shikona": "Hakunofuji",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "ichiyamamoto",
+        "east_shikona": "Ichiyamamoto",
+        "west_id": "tokihayate",
+        "west_shikona": "Tokihayate",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "shodai",
+        "east_shikona": "Shodai",
+        "west_id": "kotoshoho",
+        "west_shikona": "Kotoshoho",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "wakatakakage",
+        "east_shikona": "Wakatakakage",
+        "west_id": "fujinokawa",
+        "west_shikona": "Fujinokawa",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "abi",
+        "east_shikona": "Abi",
+        "west_id": "yoshinofuji",
+        "west_shikona": "Yoshinofuji",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "churanoumi",
+        "east_shikona": "Churanoumi",
+        "west_id": "atamifuji",
+        "west_shikona": "Atamifuji",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "kirishima",
+        "east_shikona": "Kirishima",
+        "west_id": "takanosho",
+        "west_shikona": "Takanosho",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "oho",
+        "east_shikona": "Oho",
+        "west_id": "takayasu",
+        "west_shikona": "Takayasu",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "aonishiki",
+        "east_shikona": "Aonishiki",
+        "west_id": "hiradoumi",
+        "west_shikona": "Hiradoumi",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "daieisho",
+        "east_shikona": "Daieisho",
+        "west_id": "kotozakura",
+        "west_shikona": "Kotozakura",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      },
+      {
+        "east_id": "hoshoryu",
+        "east_shikona": "Hoshoryu",
+        "west_id": "wakamotoharu",
+        "west_shikona": "Wakamotoharu",
+        "winner_id": 0,
+        "winner_shikona": "",
+        "kimarite": "",
+        "is_complete": true
+      }
+    ]
+  }
+}

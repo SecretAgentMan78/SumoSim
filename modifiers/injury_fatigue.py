@@ -1,0 +1,211 @@
+"""
+Injury / Fatigue Modifier
+
+Models the impact of injuries and cumulative tournament fatigue on wrestler ratings.
+"""
+
+from __future__ import annotations
+
+import math
+
+from modifiers.base import BaseModifier, BoutContext, ModifierResult
+from data.models import FatigueCurve
+from utils.config import get_config, TOURNAMENT_DAYS
+
+
+class InjuryFatigueModifier(BaseModifier):
+    """
+    Applies two distinct but related penalties:
+
+    1. **Injury**: A per-wrestler severity (0-1) that directly reduces effective
+       rating. Can be set to degrade over the tournament or remain constant.
+
+    2. **Fatigue**: Accumulates over the 15-day tournament based on a
+       configurable curve shape. Heavier wrestlers fatigue faster.
+       Recovery factor partially offsets daily fatigue accumulation.
+    """
+
+    def __init__(
+        self,
+        fatigue_curve: FatigueCurve = FatigueCurve.S_CURVE,
+        recovery_factor: float | None = None,
+    ):
+        cfg = get_config()
+        self._enabled = True
+        self._fatigue_curve = fatigue_curve
+        self._recovery_factor = (
+            recovery_factor if recovery_factor is not None
+            else cfg.default_recovery_factor
+        )
+
+    @property
+    def name(self) -> str:
+        return "Injury / Fatigue"
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value: bool) -> None:
+        self._enabled = value
+
+    @property
+    def fatigue_curve(self) -> FatigueCurve:
+        return self._fatigue_curve
+
+    @fatigue_curve.setter
+    def fatigue_curve(self, value: FatigueCurve) -> None:
+        self._fatigue_curve = value
+
+    @property
+    def recovery_factor(self) -> float:
+        return self._recovery_factor
+
+    @recovery_factor.setter
+    def recovery_factor(self, value: float) -> None:
+        self._recovery_factor = max(0.0, min(1.0, value))
+
+    def compute(self, context: BoutContext) -> ModifierResult:
+        if not self._enabled:
+            return ModifierResult(description="Injury/Fatigue: disabled")
+
+        cfg = get_config()
+
+        # --- Injury component ---
+        east_injury_adj = self._compute_injury(
+            context.east_injury_severity, cfg.injury_max_adjustment
+        )
+        west_injury_adj = self._compute_injury(
+            context.west_injury_severity, cfg.injury_max_adjustment
+        )
+
+        # --- Fatigue component ---
+        east_fatigue_adj = self._compute_fatigue(
+            day=context.day,
+            cumulative_fatigue=context.east_cumulative_fatigue,
+            weight_kg=context.east.weight_kg,
+            max_adjustment=cfg.fatigue_max_adjustment,
+        )
+        west_fatigue_adj = self._compute_fatigue(
+            day=context.day,
+            cumulative_fatigue=context.west.weight_kg,
+            weight_kg=context.west.weight_kg,
+            max_adjustment=cfg.fatigue_max_adjustment,
+        )
+
+        east_total = east_injury_adj + east_fatigue_adj
+        west_total = west_injury_adj + west_fatigue_adj
+
+        return ModifierResult(
+            east_adjustment=east_total,
+            west_adjustment=west_total,
+            description=(
+                f"Injury/Fatigue: "
+                f"E=inj({east_injury_adj:+.0f})+fat({east_fatigue_adj:+.0f})={east_total:+.0f}pts "
+                f"W=inj({west_injury_adj:+.0f})+fat({west_fatigue_adj:+.0f})={west_total:+.0f}pts"
+            ),
+        )
+
+    def _compute_injury(self, severity: float, max_adjustment: float) -> float:
+        """
+        Injury penalty: always negative or zero.
+        severity=0 -> 0 penalty, severity=1.0 -> -max_adjustment.
+        Uses a slight exponential curve so minor injuries have little impact
+        but severe injuries are devastating.
+        """
+        if severity <= 0.0:
+            return 0.0
+        severity = min(severity, 1.0)
+        # Exponential curve: impact ramps up sharply at higher severity
+        scaled = severity ** 1.5
+        return -scaled * max_adjustment
+
+    def _compute_fatigue(
+        self,
+        day: int,
+        cumulative_fatigue: float,
+        weight_kg: float | None,
+        max_adjustment: float,
+    ) -> float:
+        """
+        Fatigue penalty based on tournament day and cumulative load.
+
+        Heavier wrestlers accumulate fatigue ~20% faster.
+        Recovery factor partially offsets accumulation each day.
+        """
+        if day <= 1:
+            return 0.0
+
+        # Normalized day progress [0, 1]
+        progress = (day - 1) / (TOURNAMENT_DAYS - 1)
+
+        # Apply curve shape
+        raw_fatigue = self._apply_curve(progress)
+
+        # Weight penalty: heavier wrestlers fatigue slightly more
+        weight_factor = 1.0
+        if weight_kg and weight_kg > 0:
+            # Baseline at 150kg; each +10kg adds ~2% fatigue
+            weight_factor = 1.0 + max(0.0, (weight_kg - 150.0)) * 0.002
+
+        # Recovery offsets some fatigue
+        recovery_offset = self._recovery_factor * 0.3 * progress
+
+        effective_fatigue = max(
+            0.0, (raw_fatigue * weight_factor) - recovery_offset
+        )
+
+        # Add any externally tracked cumulative fatigue
+        if cumulative_fatigue and cumulative_fatigue > 0:
+            effective_fatigue = min(1.0, effective_fatigue + cumulative_fatigue * 0.1)
+
+        return -effective_fatigue * max_adjustment
+
+    def _apply_curve(self, progress: float) -> float:
+        """Apply the selected fatigue curve shape to day progress [0,1] -> [0,1]."""
+        if self._fatigue_curve == FatigueCurve.LINEAR:
+            return progress
+
+        elif self._fatigue_curve == FatigueCurve.EXPONENTIAL:
+            # Slow start, accelerating fatigue
+            return progress ** 2.0
+
+        elif self._fatigue_curve == FatigueCurve.S_CURVE:
+            # Sigmoid: slow start, steep middle, plateaus at end
+            # Shifted and scaled logistic function
+            k = 8.0  # steepness
+            midpoint = 0.5
+            raw = 1.0 / (1.0 + math.exp(-k * (progress - midpoint)))
+            # Normalize so f(0)≈0 and f(1)≈1
+            f0 = 1.0 / (1.0 + math.exp(-k * (0.0 - midpoint)))
+            f1 = 1.0 / (1.0 + math.exp(-k * (1.0 - midpoint)))
+            return (raw - f0) / (f1 - f0)
+
+        return progress  # fallback to linear
+
+
+def compute_daily_fatigue(
+    day: int,
+    weight_kg: float | None,
+    previous_fatigue: float,
+    recovery_factor: float,
+) -> float:
+    """
+    Utility to compute updated cumulative fatigue after a day.
+
+    Used by the tournament simulator to track fatigue state across days.
+    Returns the new cumulative fatigue value.
+    """
+    # Base daily fatigue increment
+    daily_increment = 0.05  # ~5% per day base
+
+    # Heavier wrestlers accumulate slightly more
+    if weight_kg and weight_kg > 150:
+        daily_increment *= 1.0 + (weight_kg - 150.0) * 0.002
+
+    # Recovery partially offsets
+    recovery = previous_fatigue * recovery_factor * 0.2
+
+    new_fatigue = max(0.0, previous_fatigue + daily_increment - recovery)
+    return min(1.0, new_fatigue)  # cap at 1.0

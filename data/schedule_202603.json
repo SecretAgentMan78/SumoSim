@@ -1,0 +1,139 @@
+{
+  "basho_id": "2026.03",
+  "updated_at": "2026-03-11T03:35:11.169090",
+  "scheduled_bouts": [
+    {
+      "day": 4,
+      "east_id": "asahakuryu",
+      "west_id": "fujiryoga",
+      "east_shikona": "Asahakuryu",
+      "west_shikona": "Fujiryoga"
+    },
+    {
+      "day": 4,
+      "east_id": "kotoeiho",
+      "west_id": "kinbozan",
+      "east_shikona": "Kotoeiho",
+      "west_shikona": "Kinbozan"
+    },
+    {
+      "day": 4,
+      "east_id": "mitakeumi",
+      "west_id": "nishikifuji",
+      "east_shikona": "Mitakeumi",
+      "west_shikona": "Nishikifuji"
+    },
+    {
+      "day": 4,
+      "east_id": "tobizaru",
+      "west_id": "fujiseiun",
+      "east_shikona": "Tobizaru",
+      "west_shikona": "Fujiseiun"
+    },
+    {
+      "day": 4,
+      "east_id": "chiyoshoma",
+      "west_id": "asanoyama",
+      "east_shikona": "Chiyoshoma",
+      "west_shikona": "Asanoyama"
+    },
+    {
+      "day": 4,
+      "east_id": "asakoryu",
+      "west_id": "oshoumi",
+      "east_shikona": "Asakoryu",
+      "west_shikona": "Oshoumi"
+    },
+    {
+      "day": 4,
+      "east_id": "tokihayate",
+      "west_id": "roga",
+      "east_shikona": "Tokihayate",
+      "west_shikona": "Roga"
+    },
+    {
+      "day": 4,
+      "east_id": "shishi",
+      "west_id": "tamawashi",
+      "east_shikona": "Shishi",
+      "west_shikona": "Tamawashi"
+    },
+    {
+      "day": 4,
+      "east_id": "gonoyama",
+      "west_id": "shodai",
+      "east_shikona": "Gonoyama",
+      "west_shikona": "Shodai"
+    },
+    {
+      "day": 4,
+      "east_id": "daieisho",
+      "west_id": "ura",
+      "east_shikona": "Daieisho",
+      "west_shikona": "Ura"
+    },
+    {
+      "day": 4,
+      "east_id": "oshoma",
+      "west_id": "takanosho",
+      "east_shikona": "Oshoma",
+      "west_shikona": "Takanosho"
+    },
+    {
+      "day": 4,
+      "east_id": "hiradoumi",
+      "west_id": "ichiyamamoto",
+      "east_shikona": "Hiradoumi",
+      "west_shikona": "Ichiyamamoto"
+    },
+    {
+      "day": 4,
+      "east_id": "kotoshoho",
+      "west_id": "oho",
+      "east_shikona": "Kotoshoho",
+      "west_shikona": "Oho"
+    },
+    {
+      "day": 4,
+      "east_id": "wakamotoharu",
+      "west_id": "atamifuji",
+      "east_shikona": "Wakamotoharu",
+      "west_shikona": "Atamifuji"
+    },
+    {
+      "day": 4,
+      "east_id": "kirishima",
+      "west_id": "wakatakakage",
+      "east_shikona": "Kirishima",
+      "west_shikona": "Wakatakakage"
+    },
+    {
+      "day": 4,
+      "east_id": "aonishiki",
+      "west_id": "churanoumi",
+      "east_shikona": "Aonishiki",
+      "west_shikona": "Churanoumi"
+    },
+    {
+      "day": 4,
+      "east_id": "takayasu",
+      "west_id": "kotozakura",
+      "east_shikona": "Takayasu",
+      "west_shikona": "Kotozakura"
+    },
+    {
+      "day": 4,
+      "east_id": "hoshoryu",
+      "west_id": "fujinokawa",
+      "east_shikona": "Hoshoryu",
+      "west_shikona": "Fujinokawa"
+    },
+    {
+      "day": 4,
+      "east_id": "yoshinofuji",
+      "west_id": "onosato",
+      "east_shikona": "Yoshinofuji",
+      "west_shikona": "Onosato"
+    }
+  ]
+}

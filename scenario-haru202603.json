@@ -1,0 +1,191 @@
+{
+  "name": "scenario-haru202603",
+  "basho": "2026.03",
+  "modifiers": {
+    "momentum": {
+      "weight": 0.6000000000000001,
+      "streak_window": 3
+    },
+    "matchup": {
+      "weight": 0.5
+    },
+    "injury_fatigue": {
+      "fatigue_curve": "s_curve",
+      "recovery_factor": 0.5
+    },
+    "style_matrix": [
+      [
+        0.0,
+        -0.3,
+        -0.1
+      ],
+      [
+        0.3,
+        0.0,
+        0.1
+      ],
+      [
+        0.1,
+        -0.1,
+        0.0
+      ]
+    ],
+    "wrestler_overrides": {
+      "hoshoryu": {
+        "style": "yotsu",
+        "momentum": "neutral",
+        "injury_severity": 0.35
+      },
+      "onosato": {
+        "style": "yotsu",
+        "momentum": "neutral",
+        "injury_severity": 0.3
+      },
+      "aonishiki": {
+        "style": "oshi",
+        "momentum": "hot"
+      },
+      "kotozakura": {
+        "style": "yotsu",
+        "momentum": "neutral",
+        "injury_severity": 0.2
+      },
+      "kirishima": {
+        "style": "yotsu",
+        "momentum": "warm"
+      },
+      "takayasu": {
+        "style": "oshi",
+        "momentum": "cold"
+      },
+      "wakamotoharu": {
+        "style": "hybrid"
+      },
+      "atamifuji": {
+        "style": "yotsu",
+        "momentum": "hot"
+      },
+      "wakatakakage": {
+        "style": "hybrid",
+        "momentum": "cool"
+      },
+      "yoshinofuji": {
+        "style": "oshi"
+      },
+      "fujinokawa": {
+        "style": "hybrid"
+      },
+      "churanoumi": {
+        "style": "hybrid"
+      },
+      "hiradoumi": {
+        "style": "yotsu"
+      },
+      "oho": {
+        "style": "hybrid",
+        "momentum": "cool"
+      },
+      "daieisho": {
+        "style": "oshi",
+        "momentum": "cool",
+        "injury_severity": 0.15
+      },
+      "takanosho": {
+        "style": "oshi"
+      },
+      "abi": {
+        "style": "oshi",
+        "momentum": "cool"
+      },
+      "kotoshoho": {
+        "style": "hybrid"
+      },
+      "ichiyamamoto": {
+        "style": "oshi"
+      },
+      "onokatsu": {
+        "style": "hybrid"
+      },
+      "oshoma": {
+        "style": "oshi"
+      },
+      "hakunofuji": {
+        "style": "hybrid",
+        "injury_severity": 0.4
+      },
+      "ura": {
+        "style": "hybrid",
+        "momentum": "cool"
+      },
+      "shodai": {
+        "style": "yotsu",
+        "momentum": "cool"
+      },
+      "tokihayate": {
+        "style": "hybrid"
+      },
+      "tamawashi": {
+        "style": "oshi",
+        "momentum": "neutral",
+        "injury_severity": 0.1
+      },
+      "gonoyama": {
+        "style": "oshi",
+        "momentum": "neutral"
+      },
+      "roga": {
+        "style": "yotsu",
+        "momentum": "neutral"
+      },
+      "shishi": {
+        "style": "oshi",
+        "momentum": "warm"
+      },
+      "oshoumi": {
+        "style": "yotsu"
+      },
+      "asakoryu": {
+        "style": "hybrid"
+      },
+      "asanoyama": {
+        "style": "yotsu",
+        "momentum": "neutral"
+      },
+      "tobizaru": {
+        "style": "hybrid",
+        "momentum": "cool"
+      },
+      "ryuden": {
+        "style": "yotsu"
+      },
+      "kinbozan": {
+        "style": "oshi",
+        "momentum": "cool"
+      },
+      "mitakeumi": {
+        "style": "oshi"
+      },
+      "asahakuryu": {
+        "style": "hybrid"
+      },
+      "chiyoshoma": {
+        "style": "hybrid"
+      },
+      "nishikifuji": {
+        "style": "yotsu",
+        "momentum": "cool",
+        "injury_severity": 0.25
+      },
+      "fujiseiun": {
+        "style": "hybrid"
+      },
+      "fujiryoga": {
+        "style": "oshi"
+      },
+      "kotoeiho": {
+        "style": "hybrid",
+        "momentum": "warm"
+      }
+    }
+  }
+}
