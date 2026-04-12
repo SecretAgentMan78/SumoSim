@@ -363,7 +363,7 @@ class ModifierPanel(QWidget):
 
         # Style interaction display
         matrix_label = QLabel("Style Interaction Matrix:")
-        matrix_label.setFont(QFont("", 10, QFont.Weight.Bold))
+        matrix_label.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
         match_layout.addWidget(matrix_label)
 
         self._style_matrix = QTableWidget(3, 3)

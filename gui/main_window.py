@@ -127,7 +127,6 @@ class MainWindow(QMainWindow):
         self._current_basho = basho_id
         self._tournament_histories = tournament_histories or {}
         self._bout_records = bout_records or []
-        self._populate_roster_list()
         self._bout_panel.set_roster(
             self._roster,
             tournament_histories=self._tournament_histories,
@@ -151,6 +150,16 @@ class MainWindow(QMainWindow):
         # Pre-populate injury sliders if notes provided
         if injury_notes:
             self._modifier_panel.apply_injury_notes(injury_notes)
+
+        # Load saved modifier overrides from database
+        try:
+            from data.db import SumoDatabase
+            db = SumoDatabase()
+            overrides = db.get_modifier_overrides()
+            if overrides:
+                self._apply_saved_overrides(overrides)
+        except Exception as e:
+            logger.debug(f"Could not load modifier overrides: {e}")
 
         self._update_status(f"Roster loaded: {len(self._roster)} wrestlers ({basho_id or 'custom'})")
 
@@ -276,33 +285,7 @@ class MainWindow(QMainWindow):
     # ================================================================
 
     def _build_central_widget(self) -> None:
-        # Main horizontal splitter
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        # ── Left sidebar: wrestler roster ──────────────────────────
-        sidebar = QWidget()
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(6, 6, 6, 6)
-
-        roster_label = QLabel("Wrestler Roster")
-        roster_label.setFont(QFont("", 11, QFont.Weight.Bold))
-        sidebar_layout.addWidget(roster_label)
-
-        self._search_box = QLineEdit()
-        self._search_box.setPlaceholderText("Search wrestlers…")
-        self._search_box.textChanged.connect(self._filter_roster)
-        sidebar_layout.addWidget(self._search_box)
-
-        self._roster_list = QListWidget()
-        self._roster_list.setMinimumWidth(220)
-        self._roster_list.itemClicked.connect(self._on_roster_click)
-        self._roster_list.setToolTip("Click to select wrestler in Bout Simulator")
-        sidebar_layout.addWidget(self._roster_list)
-
-        splitter.addWidget(sidebar)
-        self._sidebar = sidebar
-
-        # ── Right: tabbed panels ───────────────────────────────────
+        # ── Tabbed panels ──────────────────────────────────────────
         self._tab_widget = QTabWidget()
 
         self._rikishi_panel = RikishiDossierPanel(parent=self)
@@ -317,83 +300,46 @@ class MainWindow(QMainWindow):
         self._modifier_panel = ModifierPanel(parent=self)
         self._tab_widget.addTab(self._modifier_panel, "🎛  Modifiers")
 
-        # Show/hide sidebar based on active tab
-        self._tab_widget.currentChanged.connect(self._on_tab_changed)
-        self._sidebar.setVisible(False)  # Hidden by default (Dossier tab)
-
-        splitter.addWidget(self._tab_widget)
-
-        # Set default proportions (sidebar ~20%, tabs ~80%)
-        splitter.setSizes([280, 1000])
-
-        self.setCentralWidget(splitter)
+        self.setCentralWidget(self._tab_widget)
 
     # ================================================================
-    # Roster sidebar
+    # Wrestler lookup
     # ================================================================
 
-    def _populate_roster_list(self) -> None:
-        self._roster_list.clear()
-        self._roster_list.setIconSize(QSize(36, 36))
-        for w in self._roster:
-            item = QListWidgetItem()
-            rank_letter = _RANK_LABELS.get(w.rank, "?")
-            num = f"{w.rank_number}" if w.rank_number else ""
-            label = f" {rank_letter}{num}  {w.shikona}"
-            item.setText(label)
-            item.setData(Qt.ItemDataRole.UserRole, w.wrestler_id)
+    def _apply_saved_overrides(self, overrides: dict) -> None:
+        """Apply saved modifier overrides to the modifier panel."""
+        from data.models import MomentumState
 
-            # Rikishi thumbnail — crop from top to show face
-            img_path = _rikishi_image_path(w.wrestler_id, w.shikona)
-            if img_path:
-                pixmap = QPixmap(img_path)
-                # Scale width to 36, keep aspect ratio, then take top 36px
-                pixmap = pixmap.scaledToWidth(
-                    36, Qt.TransformationMode.SmoothTransformation
-                )
-                if pixmap.height() > 36:
-                    pixmap = pixmap.copy(0, 0, 36, 36)
-                item.setIcon(QIcon(pixmap))
+        table = self._modifier_panel._override_table
+        for row in range(table.rowCount()):
+            item = table.item(row, 0)
+            if not item:
+                continue
+            wid = item.data(Qt.ItemDataRole.UserRole)
+            if wid not in overrides:
+                continue
 
-            # Tooltip with quick stats
-            tips = [
-                f"Rank: {w.full_rank}",
-                f"Heya: {w.heya}",
-            ]
-            if w.height_cm:
-                tips.append(f"Height: {w.height_cm:.0f} cm")
-            if w.weight_kg:
-                tips.append(f"Weight: {w.weight_kg:.0f} kg")
-            if w.bmi:
-                tips.append(f"BMI: {w.bmi}")
-            tips.append(f"Style: {w.fighting_style.value.title()}")
-            item.setToolTip("\n".join(tips))
+            ov = overrides[wid]
 
-            # Use rank color as text color (all visible on light background)
-            color = _RANK_COLORS.get(w.rank, "#3C3C3C")
-            item.setForeground(QColor(color))
-            self._roster_list.addItem(item)
+            # Momentum
+            mom_val = ov.get("momentum")
+            if mom_val:
+                mom_widget = table.cellWidget(row, 2)
+                if mom_widget:
+                    try:
+                        ms = MomentumState(mom_val)
+                        idx = mom_widget.findData(ms)
+                        if idx >= 0:
+                            mom_widget.setCurrentIndex(idx)
+                    except ValueError:
+                        pass
 
-    def _filter_roster(self, text: str) -> None:
-        text_lower = text.lower()
-        for i in range(self._roster_list.count()):
-            item = self._roster_list.item(i)
-            visible = text_lower in item.text().lower()
-            item.setHidden(not visible)
-
-    def _on_roster_click(self, item: QListWidgetItem) -> None:
-        wrestler_id = item.data(Qt.ItemDataRole.UserRole)
-        wrestler = next(
-            (w for w in self._roster if w.wrestler_id == wrestler_id), None
-        )
-        if wrestler:
-            self._tab_widget.setCurrentWidget(self._bout_panel)
-            self._bout_panel.preselect_wrestler(wrestler)
-
-    def _on_tab_changed(self, index: int) -> None:
-        """Show sidebar only when Bout Simulator tab is active."""
-        current_widget = self._tab_widget.widget(index)
-        self._sidebar.setVisible(current_widget is self._bout_panel)
+            # Injury
+            inj_val = ov.get("injury_severity", 0.0)
+            if inj_val and inj_val > 0:
+                inj_widget = table.cellWidget(row, 3)
+                if inj_widget:
+                    inj_widget.setValue(inj_val)
 
     def find_wrestler(self, wrestler_id: str) -> Optional[WrestlerProfile]:
         """Look up a wrestler by ID from the loaded roster."""

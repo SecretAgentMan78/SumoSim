@@ -471,7 +471,7 @@ class TournamentPanel(QWidget):
                 winner_item.setForeground(QColor("#8B0000"))
             else:
                 winner_item.setForeground(QColor("#00008B"))
-            winner_item.setFont(QFont("", -1, QFont.Weight.Bold))
+            winner_item.setFont(QFont("Outfit", -1, QFont.Weight.Bold))
             self._results_table.setItem(row, 3, winner_item)
 
             kim_text = bout.predicted_kimarite or "—"
@@ -500,7 +500,7 @@ class TournamentPanel(QWidget):
 
             name_item = QTableWidgetItem(st.shikona)
             if result.yusho_winner_id == st.wrestler_id:
-                name_item.setFont(QFont("", -1, QFont.Weight.Bold))
+                name_item.setFont(QFont("Outfit", -1, QFont.Weight.Bold))
                 name_item.setForeground(QColor("#B8860B"))
                 name_item.setText(f"🏆 {st.shikona}")
             self._leaderboard.setItem(row, 1, name_item)
@@ -546,7 +546,7 @@ class TournamentPanel(QWidget):
             name = wrestler_map[wid].shikona if wid in wrestler_map else wid
             name_lbl = QLabel(name)
             name_lbl.setMinimumWidth(120)
-            name_lbl.setFont(QFont("", 11))
+            name_lbl.setFont(QFont("Outfit", 11))
             row.addWidget(name_lbl)
 
             # Bar

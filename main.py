@@ -43,7 +43,7 @@ def main() -> None:
                 os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
 
     from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtGui import QFont
+    from PyQt6.QtGui import QFont, QFontDatabase
 
     from gui.main_window import MainWindow
 
@@ -51,10 +51,39 @@ def main() -> None:
     app.setApplicationName("SumoSim")
     app.setOrganizationName("SumoSim")
 
-    # Set a clean default font
-    font = QFont("Segoe UI", 10)
-    font.setStyleHint(QFont.StyleHint.SansSerif)
-    app.setFont(font)
+    # Load Outfit font from local file or download from Google Fonts
+    outfit_loaded = False
+    font_dir = Path(__file__).resolve().parent / "data" / "fonts"
+    font_dir.mkdir(parents=True, exist_ok=True)
+    font_file = font_dir / "Outfit-VariableFont_wght.ttf"
+
+    if not font_file.exists():
+        try:
+            import httpx
+            print("Downloading Outfit font...")
+            url = "https://github.com/nicholasgross/Outfit-Fonts/raw/main/fonts/variable/Outfit%5Bwght%5D.ttf"
+            resp = httpx.get(url, timeout=15.0, follow_redirects=True)
+            if resp.status_code == 200:
+                font_file.write_bytes(resp.content)
+                print(f"  Saved to {font_file}")
+        except Exception as e:
+            print(f"  Could not download Outfit font: {e}")
+
+    if font_file.exists():
+        font_id = QFontDatabase.addApplicationFont(str(font_file))
+        if font_id >= 0:
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if families:
+                font = QFont(families[0], 10)
+                app.setFont(font)
+                outfit_loaded = True
+                print(f"  Loaded font: {families[0]}")
+
+    if not outfit_loaded:
+        # Fallback
+        font = QFont("Segoe UI", 10)
+        font.setStyleHint(QFont.StyleHint.SansSerif)
+        app.setFont(font)
 
     window = MainWindow()
     window.show()

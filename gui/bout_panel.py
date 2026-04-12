@@ -85,7 +85,7 @@ class WinProbabilityBar(QWidget):
 
         # Percentage labels
         painter.setPen(QColor("white"))
-        font = QFont("", 14, QFont.Weight.Bold)
+        font = QFont("Outfit", 14, QFont.Weight.Bold)
         painter.setFont(font)
 
         east_pct = f"{self._east_prob * 100:.1f}%"
@@ -306,7 +306,7 @@ class BoutPanel(QWidget):
         east_box = QVBoxLayout()
         east_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         east_label = QLabel("East (東)")
-        east_label.setFont(QFont("", 11, QFont.Weight.Bold))
+        east_label.setFont(QFont("Outfit", 11, QFont.Weight.Bold))
         east_label.setStyleSheet("color: #8B0000;")
         east_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         east_box.addWidget(east_label)
@@ -333,7 +333,7 @@ class BoutPanel(QWidget):
 
         # VS label
         vs_label = QLabel("VS")
-        vs_label.setFont(QFont("", 20, QFont.Weight.Bold))
+        vs_label.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
         vs_label.setStyleSheet("color: #B8860B;")
         vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vs_label.setMinimumWidth(60)
@@ -343,7 +343,7 @@ class BoutPanel(QWidget):
         west_box = QVBoxLayout()
         west_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         west_label = QLabel("West (西)")
-        west_label.setFont(QFont("", 11, QFont.Weight.Bold))
+        west_label.setFont(QFont("Outfit", 11, QFont.Weight.Bold))
         west_label.setStyleSheet("color: #00008B;")
         west_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         west_box.addWidget(west_label)
@@ -406,7 +406,7 @@ class BoutPanel(QWidget):
         headers = ["Modifier", "East Δ", "West Δ"]
         for col, hdr in enumerate(headers):
             lbl = QLabel(hdr)
-            lbl.setFont(QFont("", 10, QFont.Weight.Bold))
+            lbl.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._modifier_grid.addWidget(lbl, 0, col)
 
@@ -433,7 +433,7 @@ class BoutPanel(QWidget):
         self._simulate_btn.setObjectName("primary")
         self._simulate_btn.setMinimumWidth(200)
         self._simulate_btn.setMinimumHeight(40)
-        self._simulate_btn.setFont(QFont("", 13))
+        self._simulate_btn.setFont(QFont("Outfit", 13))
         self._simulate_btn.clicked.connect(self._on_simulate)
         btn_row.addWidget(self._simulate_btn)
 

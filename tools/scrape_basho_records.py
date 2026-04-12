@@ -74,39 +74,91 @@ def get_all_basho_ids(n: int = 6) -> list[str]:
     return ids
 
 
-def scrape_basho(basho_id: str) -> list[dict]:
-    """Scrape banzuke for a basho, return tournament record dicts."""
-    data = _get(f"/api/basho/{basho_id}/banzuke/Makuuchi")
-    if not data:
-        return []
+def scrape_basho(basho_id: str, divisions: list[str] | None = None) -> list[dict]:
+    """Scrape banzuke for a basho across divisions, return tournament record dicts.
+
+    Uses the /api/basho/:id endpoint to get actual yusho winners.
+    Jun-yusho is determined as the second-best record in each division
+    (excluding the yusho winner).
+    """
+    if divisions is None:
+        divisions = ["Makuuchi", "Juryo"]
 
     basho_dotted = f"{basho_id[:4]}.{basho_id[4:]}"
+
+    # Fetch basho metadata for actual yusho winners
+    basho_meta = _get(f"/api/basho/{basho_id}")
+    yusho_ids: set[int] = set()
+    if basho_meta:
+        for y in basho_meta.get("yusho", []):
+            rid = y.get("rikishiId", y.get("rikishiID"))
+            if rid:
+                yusho_ids.add(rid)
+    time.sleep(RATE_LIMIT)
+
     records = []
 
-    for side_key in ["east", "west"]:
-        for entry in data.get(side_key, []):
-            api_id = entry.get("rikishiID", entry.get("rikishiId"))
-            if not api_id:
-                continue
+    for division in divisions:
+        data = _get(f"/api/basho/{basho_id}/banzuke/{division}")
+        if not data:
+            continue
 
-            rank_str = entry.get("rank", "")
-            rank, number, side = parse_rank_string(rank_str)
+        # First pass: collect all entries for this division
+        division_entries = []
+        for side_key in ["east", "west"]:
+            for entry in (data.get(side_key) or []):
+                api_id = entry.get("rikishiID", entry.get("rikishiId"))
+                if not api_id:
+                    continue
 
-            wins = entry.get("wins", 0)
-            losses = entry.get("losses", 0)
-            absences = entry.get("absences", 0)
+                rank_str = entry.get("rank", "")
+                rank, number, side = parse_rank_string(rank_str)
 
-            records.append({
-                "basho_id": basho_dotted,
-                "wrestler_id": str(api_id),
-                "shikona": entry.get("shikonaEn", ""),
-                "rank": rank,
-                "rank_number": number,
-                "side": side,
-                "wins": wins,
-                "losses": losses,
-                "absences": absences,
-            })
+                wins = entry.get("wins", 0)
+                losses = entry.get("losses", 0)
+                absences = entry.get("absences", 0)
+
+                division_entries.append({
+                    "basho_id": basho_dotted,
+                    "wrestler_id": str(api_id),
+                    "api_id": api_id,
+                    "shikona": entry.get("shikonaEn", ""),
+                    "rank": rank,
+                    "rank_number": number,
+                    "side": side,
+                    "wins": wins,
+                    "losses": losses,
+                    "absences": absences,
+                    "is_yusho": api_id in yusho_ids,
+                    "is_jun_yusho": False,
+                })
+
+        # Second pass: determine jun-yusho (best record excluding yusho winner)
+        yusho_wins = 0
+        for e in division_entries:
+            if e["is_yusho"]:
+                yusho_wins = e["wins"]
+                break
+
+        # Find the best non-yusho win count
+        non_yusho_wins = [
+            e["wins"] for e in division_entries
+            if not e["is_yusho"] and e["wins"] > 0
+        ]
+        if non_yusho_wins:
+            jun_yusho_wins = max(non_yusho_wins)
+            # Jun-yusho typically requires a strong record (at least 10 wins
+            # in Makuuchi, or close to yusho winner)
+            for e in division_entries:
+                if not e["is_yusho"] and e["wins"] == jun_yusho_wins:
+                    e["is_jun_yusho"] = True
+
+        # Remove api_id helper field before adding to records
+        for e in division_entries:
+            e.pop("api_id", None)
+
+        records.extend(division_entries)
+        time.sleep(RATE_LIMIT)
 
     return records
 
@@ -125,17 +177,54 @@ def save_to_database(all_records: list[dict]):
     except sqlite3.OperationalError:
         pass
 
+    # Auto-create stub wrestlers for any not yet in the DB
+    existing = set(
+        r[0] for r in conn.execute("SELECT wrestler_id FROM wrestlers").fetchall()
+    )
+    stubs_created = 0
+    for r in all_records:
+        wid = r["wrestler_id"]
+        if wid not in existing:
+            conn.execute(
+                """INSERT OR IGNORE INTO wrestlers
+                   (wrestler_id, shikona, heya, fighting_style, api_id, is_active)
+                   VALUES (?, ?, '', 'hybrid', ?, 1)""",
+                (wid, r.get("shikona", f"Rikishi {wid}"), int(wid) if wid.isdigit() else None),
+            )
+            existing.add(wid)
+            stubs_created += 1
+
+            # Also create in Supabase
+            if db.is_online:
+                try:
+                    db._rest_upsert("wrestlers", {
+                        "wrestler_id": wid,
+                        "shikona": r.get("shikona", f"Rikishi {wid}"),
+                        "heya": "",
+                        "fighting_style": "hybrid",
+                        "api_id": int(wid) if wid.isdigit() else None,
+                        "is_active": True,
+                    }, on_conflict="wrestler_id")
+                except Exception:
+                    pass
+
+    if stubs_created:
+        print(f"  Created {stubs_created} stub wrestler records")
+    conn.commit()
+
     saved = 0
     for r in all_records:
         try:
             conn.execute(
                 """INSERT OR REPLACE INTO tournament_records
                    (basho_id, wrestler_id, rank, rank_number, side,
-                    wins, losses, absences)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    wins, losses, absences, is_yusho, is_jun_yusho)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (r["basho_id"], r["wrestler_id"], r["rank"],
                  r["rank_number"], r["side"],
-                 r["wins"], r["losses"], r["absences"]),
+                 r["wins"], r["losses"], r["absences"],
+                 1 if r.get("is_yusho") else 0,
+                 1 if r.get("is_jun_yusho") else 0),
             )
             saved += 1
         except Exception as e:
@@ -155,9 +244,12 @@ def save_to_database(all_records: list[dict]):
                     "wrestler_id": r["wrestler_id"],
                     "rank": r["rank"],
                     "rank_number": r["rank_number"],
+                    "side": r.get("side"),
                     "wins": r["wins"],
                     "losses": r["losses"],
                     "absences": r["absences"],
+                    "is_yusho": r.get("is_yusho", False),
+                    "is_jun_yusho": r.get("is_jun_yusho", False),
                 }
                 db._rest_upsert("tournament_records", row,
                                 on_conflict="basho_id,wrestler_id")

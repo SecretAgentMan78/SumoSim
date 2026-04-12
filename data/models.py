@@ -22,13 +22,20 @@ class Rank(str, Enum):
     SEKIWAKE = "sekiwake"
     KOMUSUBI = "komusubi"
     MAEGASHIRA = "maegashira"
+    JURYO = "juryo"
+    MAKUSHITA = "makushita"
+    SANDANME = "sandanme"
+    JONIDAN = "jonidan"
+    JONOKUCHI = "jonokuchi"
 
     @property
     def tier(self) -> int:
         return {
             Rank.YOKOZUNA: 1, Rank.OZEKI: 2, Rank.SEKIWAKE: 3,
             Rank.KOMUSUBI: 4, Rank.MAEGASHIRA: 5,
-        }[self]
+            Rank.JURYO: 6, Rank.MAKUSHITA: 7, Rank.SANDANME: 8,
+            Rank.JONIDAN: 9, Rank.JONOKUCHI: 10,
+        }.get(self, 11)
 
 
 class Division(str, Enum):

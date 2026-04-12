@@ -1,602 +1,349 @@
-#!/usr/bin/env python3
 """
-SumoSim Rikishi Scraper
-
-Fetches comprehensive rikishi (wrestler) profiles from sumo-api.com
-including kanji names, birth details, career records, and match history.
-
-This populates the extended wrestler fields needed for the Rikishi
-Dossier feature.
-
-Endpoints used:
-    GET /api/rikishis                           — List all rikishi
-    GET /api/rikishi/:id                        — Full profile
-    GET /api/rikishi/:id/matches                — All career matches
-    GET /api/basho/:bashoId/banzuke/:division   — Roster for a basho
+tools/scrape_rikishi.py
+-----------------------
+Scrapes all active sekitori (Makuuchi + Juryo) from sumo-api.com,
+upserts wrestler records into the local DB and syncs to Supabase.
 
 Usage:
-    python -m tools.scrape_rikishi --active             # Current active only
-    python -m tools.scrape_rikishi --all                # All rikishi (large!)
-    python -m tools.scrape_rikishi --basho 202603       # Specific basho roster
-    python -m tools.scrape_rikishi --id 19              # Single rikishi by API ID
-    python -m tools.scrape_rikishi --active --matches   # Include full match history
-"""
+    python -m tools.scrape_rikishi              # latest completed basho
+    python -m tools.scrape_rikishi --basho 202603
+    python -m tools.scrape_rikishi --basho 202605  # Natsu 2026 (once published)
 
-from __future__ import annotations
+What it does:
+  1. Fetches the banzuke for the target basho for BOTH Makuuchi and Juryo.
+  2. For every rikishi on the banzuke, fetches /api/rikishi/:id and
+     /api/rikishi/:id/stats (separate endpoint).
+  3. Upserts into the `wrestlers` table (adds `division` column if missing).
+  4. Syncs updated rows to Supabase.
+
+Division column values: "Makuuchi" | "Juryo"
+Rank examples stored as-is from API: "Yokozuna 1 East", "Maegashira 5 West",
+                                      "Juryo 3 East", etc.
+"""
 
 import argparse
 import json
-import sys
+import sqlite3
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import requests
 
-API_BASE = "https://www.sumo-api.com"
-RATE_LIMIT = 0.8  # seconds between requests
+# ── Config ────────────────────────────────────────────────────────────────────
 
+BASE_URL   = "https://sumo-api.com/api"
+DB_PATH    = Path("data/sumosim_local.db")
+CACHE_DIR  = Path("data/cache/rikishi")
+RATE_DELAY = 0.4   # seconds between API calls (be polite)
 
-def _get(path: str, params: dict | None = None) -> dict | list | None:
-    """Fetch from the API with rate limiting."""
-    import httpx
-    url = f"{API_BASE}{path}"
-    try:
-        resp = httpx.get(url, params=params, timeout=15.0)
-        if resp.status_code == 404:
-            return None
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        print(f"  Error fetching {path}: {e}")
-        return None
+DIVISIONS = ["Makuuchi", "Juryo"]
 
+# Latest completed basho — update this each cycle or pass --basho on CLI.
+# 202603 = Haru 2026 (March).  202605 = Natsu 2026 (May, if published).
+DEFAULT_BASHO = "202603"
 
-def fetch_rikishi_list(limit: int = 10000, skip: int = 0) -> list[dict]:
-    """Fetch the full list of rikishi IDs and basic info."""
-    print(f"Fetching rikishi list (limit={limit})...")
-    data = _get("/api/rikishis", params={"limit": str(limit), "skip": str(skip)})
-    if not data:
-        return []
-    # Response is typically {"records": [...], "total": N}
-    if isinstance(data, dict):
-        records = data.get("records", data.get("rikishis", []))
-        total = data.get("total", len(records))
-        print(f"  Found {total} rikishi ({len(records)} in this page)")
-        return records
-    return data if isinstance(data, list) else []
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+session = requests.Session()
+session.headers.update({"User-Agent": "SumoSim/1.0 (personal research tool)"})
 
 
-def fetch_rikishi_detail(api_id: int) -> dict | None:
-    """Fetch full detail for a single rikishi."""
-    return _get(f"/api/rikishi/{api_id}")
+def _get(path: str, cache_key: str | None = None) -> dict | list:
+    """GET from sumo-api with optional disk cache."""
+    if cache_key:
+        cache_file = CACHE_DIR / f"{cache_key}.json"
+        if cache_file.exists():
+            with open(cache_file, encoding="utf-8") as f:
+                return json.load(f)
+
+    url = f"{BASE_URL}{path}"
+    resp = session.get(url, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    time.sleep(RATE_DELAY)
+
+    if cache_key:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(CACHE_DIR / f"{cache_key}.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    return data
 
 
-def fetch_rikishi_stats(api_id: int) -> dict | None:
-    """Fetch career stats for a single rikishi (wins/losses by division, yusho, etc.)."""
-    return _get(f"/api/rikishi/{api_id}/stats")
-
-
-def fetch_rikishi_matches(api_id: int, limit: int = 10000) -> list[dict]:
-    """Fetch all matches for a rikishi."""
-    data = _get(f"/api/rikishi/{api_id}/matches", params={"limit": str(limit)})
-    if not data:
-        return []
-    if isinstance(data, dict):
-        return data.get("records", data.get("matches", []))
-    return data if isinstance(data, list) else []
-
-
-def fetch_basho_roster(basho_id: str, division: str = "Makuuchi") -> list[dict]:
-    """Fetch all rikishi from a specific basho banzuke."""
-    data = _get(f"/api/basho/{basho_id}/banzuke/{division}")
-    if not data:
-        return []
-    roster = []
-    for side in ["east", "west"]:
-        for entry in data.get(side, []):
-            roster.append(entry)
-    return roster
-
-
-def normalize_rikishi(raw: dict, stats: dict | None = None) -> dict:
-    """Normalize rikishi detail fields from API response.
-
-    Args:
-        raw: Response from /api/rikishi/:id
-        stats: Response from /api/rikishi/:id/stats (optional)
-    """
-    def g(key, *alts):
-        val = raw.get(key)
-        if val is not None:
-            return val
-        for alt in alts:
-            val = raw.get(alt)
-            if val is not None:
-                return val
-        return None
-
-    api_id = g("id", "rikishiID", "rikishiId")
-    shikona_en = g("shikonaEn", "shikona_en", "currentShikona", "shikona", "")
-    wrestler_id = str(api_id) if api_id else shikona_en.lower().replace(" ", "").replace("-", "")
-
-    # Parse birth date
-    birth_date = g("birthDate", "birth_date")
-    if birth_date and isinstance(birth_date, str):
-        birth_date = birth_date[:10] if len(birth_date) >= 10 else birth_date
-
-    # Parse height/weight
-    height = g("height", "heightCm")
-    weight = g("weight", "weightKg")
-
-    # Determine fighting style from kimarite data if available
-    fighting_style = "hybrid"
-
-    # Determine active status
-    is_active = True
-    retired_date = None
-    intai = g("intpiDate", "intaiDate", "retired", "retiredDate")
-    if intai:
-        is_active = False
-        if isinstance(intai, str) and len(intai) >= 10:
-            retired_date = intai[:10]
-
-    status = g("status", "rikishiStatus")
-    if status and isinstance(status, str) and status.lower() in ("retired", "intai"):
-        is_active = False
-
-    # Parse career stats from /stats endpoint
-    career_wins = 0
-    career_losses = 0
-    career_absences = 0
-    total_yusho = 0
-
-    if stats:
-        # Sum wins/losses/absences across all divisions
-        win_by_div = stats.get("winByDivision", stats.get("winsByDivision", {}))
-        loss_by_div = stats.get("lossByDivision", stats.get("lossesByDivision", {}))
-        abs_by_div = stats.get("absenceByDivision", stats.get("absencesByDivision", {}))
-
-        if isinstance(win_by_div, dict):
-            career_wins = sum(win_by_div.values())
-        if isinstance(loss_by_div, dict):
-            career_losses = sum(loss_by_div.values())
-        if isinstance(abs_by_div, dict):
-            career_absences = sum(abs_by_div.values())
-
-        # Yusho count — use Makuuchi only from yushoByDivision if available
-        yusho_by_div = stats.get("yushoByDivision") or {}
-        if isinstance(yusho_by_div, dict) and "Makuuchi" in yusho_by_div:
-            total_yusho = yusho_by_div["Makuuchi"]
-        else:
-            total_yusho = stats.get("yusho", stats.get("yushoCount", 0)) or 0
-            if isinstance(total_yusho, dict):
-                total_yusho = total_yusho.get("Makuuchi", sum(total_yusho.values()))
-
-    # Parse shusshin (birthplace)
-    # API format: "Mongolia, Ulaanbaatar" (country, city) for foreigners
-    #             "Saitama-ken, Tokorozawa-shi" (prefecture, city) for Japanese
-    #             "Mongolia" (just country, no city)
-    shusshin = g("shusshin", "birthPlace", "")
-    country = "Japan"
-    prefecture = None
-
-    known_countries = {"Mongolia", "Ukraine", "Kazakhstan", "Georgia", "Brazil",
-                       "Bulgaria", "Russia", "Egypt", "Tonga", "China", "USA",
-                       "South Korea", "Taiwan", "Philippines"}
-
-    if shusshin:
-        if "," in shusshin:
-            parts = [p.strip() for p in shusshin.split(",")]
-            first = parts[0]
-            # First part is either a country or a Japanese prefecture
-            if first in known_countries:
-                country = first
-                prefecture = parts[1] if len(parts) > 1 else None
-            elif first.endswith("-ken") or first.endswith("-fu") or first.endswith("-to") or first.endswith("-do") or first in ("Tokyo", "Osaka", "Kyoto", "Hokkaido"):
-                country = "Japan"
-                prefecture = first.replace("-ken", "").replace("-fu", "").replace("-to", "").replace("-do", "")
-            else:
-                # Unknown format — assume Japanese
-                country = "Japan"
-                prefecture = first
-        else:
-            # Single value
-            if shusshin in known_countries:
-                country = shusshin
-            elif shusshin.endswith("-ken") or shusshin.endswith("-fu"):
-                country = "Japan"
-                prefecture = shusshin.replace("-ken", "").replace("-fu", "")
-            else:
-                country = "Japan"
-                prefecture = shusshin
-
-    return {
-        "wrestler_id": wrestler_id,
-        "api_id": api_id,
-        "shikona": shikona_en,
-        "shikona_jp": g("shikonaJp", "shikona_jp", "currentShikonaJp"),
-        "heya": g("heya", "heyaName", "stable", ""),
-        "birth_date": birth_date,
-        "height_cm": float(height) if height else None,
-        "weight_kg": float(weight) if weight else None,
-        "country": country,
-        "prefecture": prefecture,
-        "fighting_style": fighting_style,
-        "highest_rank": g("highestRank", "highest_rank", "currentRank"),
-        "highest_rank_number": g("highestRankNumber", "highest_rank_number"),
-        "debut_basho": g("debutBashoId", "debut", "debutBasho"),
-        "is_active": is_active,
-        "retired_date": retired_date,
-        "career_wins": career_wins,
-        "career_losses": career_losses,
-        "career_absences": career_absences,
-        "total_yusho": total_yusho,
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    """Add new columns to wrestlers table if they don't exist yet."""
+    cur = conn.cursor()
+    existing = {row[1] for row in cur.execute("PRAGMA table_info(wrestlers)")}
+    needed = {
+        "division":      "TEXT NOT NULL DEFAULT 'Makuuchi'",
+        "rank_label":    "TEXT",          # e.g. "Maegashira 5 West"
+        "rank_value":    "INTEGER",       # numeric sort order (lower = higher rank)
+        "current_basho": "TEXT",          # bashoId of most recent data
+        "basho_wins":    "INTEGER",       # wins in current_basho
+        "basho_losses":  "INTEGER",       # losses in current_basho
+        "basho_absences": "INTEGER",      # absences in current_basho
+        "makuuchi_wins":  "INTEGER",
+        "makuuchi_losses": "INTEGER",
+        "makuuchi_absences": "INTEGER",
+        "juryo_wins":    "INTEGER",
+        "juryo_losses":  "INTEGER",
+        "juryo_absences": "INTEGER",
+        "yusho_makuuchi": "INTEGER DEFAULT 0",
+        "yusho_juryo":   "INTEGER DEFAULT 0",
+        "updated_at":    "TEXT",
     }
-
-
-def save_to_database(rikishi_list: list[dict], include_matches: bool = False):
-    """Save scraped rikishi data to the database."""
-    from data.db import SumoDatabase
-    db = SumoDatabase()
-    print(f"\nWriting to database (online: {db.is_online})...")
-
-    import sqlite3
-
-    conn = db._local_conn()
-
-    # Ensure extended columns exist in local SQLite
-    for col, col_type in [
-        ("shikona_jp", "TEXT"), ("prefecture", "TEXT"), ("api_id", "INTEGER"),
-        ("highest_rank", "TEXT"), ("highest_rank_number", "INTEGER"),
-        ("is_active", "INTEGER DEFAULT 1"), ("retired_date", "TEXT"),
-        ("debut_basho", "TEXT"), ("career_wins", "INTEGER DEFAULT 0"),
-        ("career_losses", "INTEGER DEFAULT 0"),
-        ("career_absences", "INTEGER DEFAULT 0"),
-        ("total_yusho", "INTEGER DEFAULT 0"),
-    ]:
-        try:
-            conn.execute(f"ALTER TABLE wrestlers ADD COLUMN {col} {col_type}")
-        except sqlite3.OperationalError:
-            pass  # Column already exists
-
-    saved = 0
-    for r in rikishi_list:
-        try:
-            conn.execute(
-                """INSERT OR REPLACE INTO wrestlers
-                   (wrestler_id, shikona, shikona_jp, heya, birth_date,
-                    height_cm, weight_kg, fighting_style, country, prefecture,
-                    api_id, highest_rank, highest_rank_number, is_active,
-                    retired_date, debut_basho, career_wins, career_losses,
-                    career_absences, total_yusho, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (r["wrestler_id"], r["shikona"], r.get("shikona_jp"),
-                 r["heya"], r.get("birth_date"),
-                 r.get("height_cm"), r.get("weight_kg"),
-                 r.get("fighting_style", "hybrid"),
-                 r.get("country", "Japan"), r.get("prefecture"),
-                 r.get("api_id"), r.get("highest_rank"),
-                 r.get("highest_rank_number"),
-                 1 if r.get("is_active", True) else 0,
-                 r.get("retired_date"), r.get("debut_basho"),
-                 r.get("career_wins", 0), r.get("career_losses", 0),
-                 r.get("career_absences", 0), r.get("total_yusho", 0),
-                 datetime.now(timezone.utc).isoformat()),
-            )
-            saved += 1
-        except Exception as e:
-            print(f"  Error saving {r.get('shikona', '?')}: {e}")
-
+    for col, typedef in needed.items():
+        if col not in existing:
+            cur.execute(f"ALTER TABLE wrestlers ADD COLUMN {col} {typedef}")
     conn.commit()
 
-    # Also push to Supabase if online
-    if db.is_online:
-        print("  Pushing to Supabase...")
-        errors = 0
-        for r in rikishi_list:
-            try:
-                # Explicitly map to DB column names with correct types
-                row = {
-                    "wrestler_id": r["wrestler_id"],
-                    "shikona": r["shikona"],
-                    "heya": r.get("heya", ""),
-                }
-                # Optional fields — only include if not None
-                optionals = {
-                    "shikona_jp": r.get("shikona_jp"),
-                    "birth_date": r.get("birth_date"),
-                    "height_cm": float(r["height_cm"]) if r.get("height_cm") else None,
-                    "weight_kg": float(r["weight_kg"]) if r.get("weight_kg") else None,
-                    "fighting_style": r.get("fighting_style", "hybrid"),
-                    "country": r.get("country", "Japan"),
-                    "prefecture": r.get("prefecture"),
-                    "api_id": int(r["api_id"]) if r.get("api_id") else None,
-                    "highest_rank": r.get("highest_rank"),
-                    "highest_rank_number": int(r["highest_rank_number"]) if r.get("highest_rank_number") else None,
-                    "is_active": bool(r.get("is_active", True)),
-                    "retired_date": r.get("retired_date"),
-                    "debut_basho": r.get("debut_basho"),
-                    "career_wins": int(r["career_wins"]) if r.get("career_wins") else 0,
-                    "career_losses": int(r["career_losses"]) if r.get("career_losses") else 0,
-                    "career_absences": int(r["career_absences"]) if r.get("career_absences") else 0,
-                    "total_yusho": int(r["total_yusho"]) if r.get("total_yusho") else 0,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                }
-                for k, v in optionals.items():
-                    if v is not None:
-                        row[k] = v
 
-                db._rest_upsert("wrestlers", row, on_conflict="wrestler_id")
-            except Exception as e:
-                errors += 1
-                if errors <= 3:
-                    print(f"    Supabase error for {r.get('shikona', '?')}: {e}")
-                elif errors == 4:
-                    print(f"    (suppressing further errors...)")
-        if errors:
-            print(f"  {errors} Supabase errors total")
-
-    conn.close()
-    print(f"  Saved {saved} rikishi to local DB")
-    return saved
-
-
-def save_matches_to_database(api_id: int, wrestler_id: str, matches: list[dict]):
-    """Save match history to bout_records table.
-
-    Uses numeric API IDs for wrestler identification.
-    Auto-creates stub wrestler records for any opponent not yet in the DB.
+def _rank_sort_value(rank_label: str) -> int:
     """
-    from data.db import SumoDatabase
-    from data.models import BoutRecord
+    Convert a rank label string to a sortable integer (lower = higher rank).
 
-    db = SumoDatabase()
-    records = []
+    Examples:
+        "Yokozuna 1 East"   ->   10
+        "Ozeki 1 West"      ->   30
+        "Sekiwake 1 East"   ->   50
+        "Komusubi 1 East"   ->   70
+        "Maegashira 1 East" ->  100
+        "Maegashira 17 West"->  134
+        "Juryo 1 East"      ->  200
+        "Juryo 14 West"     ->  227
+    """
+    r = rank_label.lower()
+    # Extract numeric part (e.g. "5" from "Maegashira 5 East")
+    parts = rank_label.split()
+    num = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 1
+    side_offset = 1 if rank_label.endswith("West") else 0
 
-    # Collect all wrestler IDs we'll need
-    needed_ids: dict[str, str] = {}  # api_id_str -> shikona
-
-    for m in matches:
-        basho = m.get("bashoId", m.get("basho_id", ""))
-        if not basho:
-            continue
-        # Convert YYYYMM to YYYY.MM
-        if len(str(basho)) == 6:
-            basho_dotted = f"{str(basho)[:4]}.{str(basho)[4:]}"
-        elif "." in str(basho):
-            basho_dotted = str(basho)
-        else:
-            continue
-
-        day = m.get("day", 0)
-        if not (1 <= day <= 16):
-            continue
-
-        # Use numeric API IDs
-        east_api_id = m.get("eastId", m.get("east_id"))
-        west_api_id = m.get("westId", m.get("west_id"))
-        winner_api_id = m.get("winnerId", m.get("winner_id"))
-        kimarite = m.get("kimarite")
-
-        if not east_api_id or not west_api_id or not winner_api_id:
-            continue
-
-        east_id = str(east_api_id)
-        west_id = str(west_api_id)
-        winner_id = str(winner_api_id)
-
-        # Track shikona for stub creation
-        east_shikona = m.get("eastShikona", m.get("east_shikona", f"Rikishi {east_id}"))
-        west_shikona = m.get("westShikona", m.get("west_shikona", f"Rikishi {west_id}"))
-        needed_ids[east_id] = east_shikona
-        needed_ids[west_id] = west_shikona
-
-        try:
-            records.append(BoutRecord(
-                basho_id=basho_dotted,
-                day=day,
-                east_id=east_id,
-                west_id=west_id,
-                winner_id=winner_id,
-                kimarite=kimarite,
-            ))
-        except (ValueError, TypeError):
-            continue
-
-    # Auto-create stub records for wrestlers not yet in the DB
-    if needed_ids:
-        import sqlite3
-        conn = db._local_conn()
-
-        # Ensure extended columns exist
-        for col, col_type in [
-            ("shikona_jp", "TEXT"), ("prefecture", "TEXT"), ("api_id", "INTEGER"),
-            ("highest_rank", "TEXT"), ("highest_rank_number", "INTEGER"),
-            ("is_active", "INTEGER DEFAULT 1"), ("retired_date", "TEXT"),
-            ("debut_basho", "TEXT"), ("career_wins", "INTEGER DEFAULT 0"),
-            ("career_losses", "INTEGER DEFAULT 0"),
-            ("career_absences", "INTEGER DEFAULT 0"),
-            ("total_yusho", "INTEGER DEFAULT 0"),
-        ]:
-            try:
-                conn.execute(f"ALTER TABLE wrestlers ADD COLUMN {col} {col_type}")
-            except sqlite3.OperationalError:
-                pass
-
-        existing = set()
-        for row in conn.execute("SELECT wrestler_id FROM wrestlers").fetchall():
-            existing.add(row["wrestler_id"])
-
-        stubs_created = 0
-        for wid, shikona in needed_ids.items():
-            if wid not in existing:
-                conn.execute(
-                    """INSERT OR IGNORE INTO wrestlers
-                       (wrestler_id, shikona, heya, fighting_style, api_id, updated_at)
-                       VALUES (?, ?, '', 'hybrid', ?, ?)""",
-                    (wid, shikona, int(wid), datetime.now(timezone.utc).isoformat()),
-                )
-                existing.add(wid)
-                stubs_created += 1
-
-                # Also create in Supabase if online
-                if db.is_online:
-                    try:
-                        db._rest_upsert("wrestlers", {
-                            "wrestler_id": wid,
-                            "shikona": shikona,
-                            "heya": "",
-                            "fighting_style": "hybrid",
-                            "api_id": int(wid),
-                        }, on_conflict="wrestler_id")
-                    except Exception:
-                        pass
-
-        if stubs_created:
-            print(f"    Created {stubs_created} stub wrestler records")
-        conn.commit()
-        conn.close()
-
-    if records:
-        n = db.upsert_bout_records(records)
-        return n
-    return 0
+    if "yokozuna" in r:
+        return 10 + (num - 1) * 2 + side_offset
+    if "ozeki" in r:
+        return 30 + (num - 1) * 2 + side_offset
+    if "sekiwake" in r:
+        return 50 + (num - 1) * 2 + side_offset
+    if "komusubi" in r:
+        return 70 + (num - 1) * 2 + side_offset
+    if "maegashira" in r:
+        return 100 + (num - 1) * 2 + side_offset
+    if "juryo" in r:
+        return 200 + (num - 1) * 2 + side_offset
+    return 999
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Scrape rikishi profiles from Sumo API"
+def _fetch_banzuke(basho_id: str, division: str) -> list[dict]:
+    """Return list of rikishi entries from the banzuke endpoint."""
+    data = _get(
+        f"/basho/{basho_id}/banzuke/{division}",
+        cache_key=f"banzuke_{basho_id}_{division}",
     )
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--active", action="store_true",
-                      help="Scrape active Makuuchi wrestlers only")
-    mode.add_argument("--all", action="store_true",
-                      help="Scrape ALL rikishi (thousands — takes hours)")
-    mode.add_argument("--basho", default=None,
-                      help="Scrape roster from specific basho (YYYYMM)")
-    mode.add_argument("--id", type=int, default=None,
-                      help="Scrape a single rikishi by API ID")
+    # API returns {"east": [...], "west": [...]} or similar — normalise to flat list
+    if isinstance(data, list):
+        return data
+    rikishi_list: list[dict] = []
+    for side in ("east", "west"):
+        for entry in data.get(side, []):
+            entry["_side"] = side.capitalize()
+            rikishi_list.append(entry)
+    return rikishi_list
 
-    parser.add_argument("--matches", action="store_true",
-                        help="Also scrape full match history for each rikishi")
-    parser.add_argument("--db", action="store_true", default=True,
-                        help="Write to database (default: True)")
-    parser.add_argument("--json-output", default=None,
-                        help="Also save raw data to JSON file")
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Limit number of rikishi to process")
 
-    args = parser.parse_args()
+def _fetch_rikishi_detail(rikishi_id: str) -> dict:
+    return _get(f"/rikishi/{rikishi_id}", cache_key=f"rikishi_{rikishi_id}")
 
-    # Load .env
-    env_path = Path(__file__).resolve().parent.parent / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, _, val = line.partition("=")
-                import os
-                os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
 
-    rikishi_to_scrape: list[int] = []  # API IDs
+def _fetch_rikishi_stats(rikishi_id: str) -> dict:
+    return _get(f"/rikishi/{rikishi_id}/stats", cache_key=f"stats_{rikishi_id}")
 
-    if args.id:
-        rikishi_to_scrape = [args.id]
-    elif args.basho:
-        print(f"Fetching roster for basho {args.basho}...")
-        roster = fetch_basho_roster(args.basho)
-        time.sleep(RATE_LIMIT)
-        for entry in roster:
-            api_id = entry.get("rikishiID", entry.get("rikishiId"))
-            if api_id:
-                rikishi_to_scrape.append(api_id)
-        print(f"  {len(rikishi_to_scrape)} wrestlers in roster")
-    elif args.all:
-        print("Fetching complete rikishi list...")
-        records = fetch_rikishi_list(limit=10000)
-        time.sleep(RATE_LIMIT)
-        for r in records:
-            api_id = r.get("id", r.get("rikishiId"))
-            if api_id:
-                rikishi_to_scrape.append(api_id)
-        print(f"  {len(rikishi_to_scrape)} total rikishi")
-    else:
-        # Default: active Makuuchi (current basho)
-        from datetime import date
-        today = date.today()
-        basho_months = [1, 3, 5, 7, 9, 11]
-        best = min(basho_months, key=lambda m: abs(today.month - m))
-        basho_id = f"{today.year}{best:02d}"
-        print(f"Fetching active Makuuchi roster ({basho_id})...")
-        roster = fetch_basho_roster(basho_id)
-        time.sleep(RATE_LIMIT)
-        for entry in roster:
-            api_id = entry.get("rikishiID", entry.get("rikishiId"))
-            if api_id:
-                rikishi_to_scrape.append(api_id)
-        print(f"  {len(rikishi_to_scrape)} wrestlers in roster")
 
-    if args.limit:
-        rikishi_to_scrape = rikishi_to_scrape[:args.limit]
+def _upsert_wrestler(conn: sqlite3.Connection, row: dict) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO wrestlers (
+            wrestler_id, shikona, shikona_en, division, rank_label, rank_value,
+            heya, birth_date, height, weight, nationality, shusshin,
+            current_basho, basho_wins, basho_losses, basho_absences,
+            makuuchi_wins, makuuchi_losses, makuuchi_absences,
+            juryo_wins, juryo_losses, juryo_absences,
+            yusho_makuuchi, yusho_juryo, updated_at
+        ) VALUES (
+            :wrestler_id, :shikona, :shikona_en, :division, :rank_label, :rank_value,
+            :heya, :birth_date, :height, :weight, :nationality, :shusshin,
+            :current_basho, :basho_wins, :basho_losses, :basho_absences,
+            :makuuchi_wins, :makuuchi_losses, :makuuchi_absences,
+            :juryo_wins, :juryo_losses, :juryo_absences,
+            :yusho_makuuchi, :yusho_juryo, :updated_at
+        )
+        ON CONFLICT(wrestler_id) DO UPDATE SET
+            shikona          = excluded.shikona,
+            shikona_en       = excluded.shikona_en,
+            division         = excluded.division,
+            rank_label       = excluded.rank_label,
+            rank_value       = excluded.rank_value,
+            heya             = excluded.heya,
+            birth_date       = excluded.birth_date,
+            height           = excluded.height,
+            weight           = excluded.weight,
+            nationality      = excluded.nationality,
+            shusshin         = excluded.shusshin,
+            current_basho    = excluded.current_basho,
+            basho_wins       = excluded.basho_wins,
+            basho_losses     = excluded.basho_losses,
+            basho_absences   = excluded.basho_absences,
+            makuuchi_wins    = excluded.makuuchi_wins,
+            makuuchi_losses  = excluded.makuuchi_losses,
+            makuuchi_absences= excluded.makuuchi_absences,
+            juryo_wins       = excluded.juryo_wins,
+            juryo_losses     = excluded.juryo_losses,
+            juryo_absences   = excluded.juryo_absences,
+            yusho_makuuchi   = excluded.yusho_makuuchi,
+            yusho_juryo      = excluded.yusho_juryo,
+            updated_at       = excluded.updated_at
+        """,
+        row,
+    )
 
-    # Fetch details for each rikishi
-    all_rikishi: list[dict] = []
-    total = len(rikishi_to_scrape)
 
-    for i, api_id in enumerate(rikishi_to_scrape, 1):
-        print(f"  [{i}/{total}] Fetching rikishi {api_id}...", end=" ", flush=True)
-        raw = fetch_rikishi_detail(api_id)
-        time.sleep(RATE_LIMIT)
+def _build_rank_label(entry: dict, division: str) -> str:
+    """Construct a human-readable rank label from a banzuke entry."""
+    rank = entry.get("rank", "")
+    # API may already give full label, e.g. "Maegashira 5 East"
+    if rank:
+        return rank
+    # Fallback: build from parts
+    rank_en  = entry.get("rankEn", entry.get("rank_en", ""))
+    rank_num = entry.get("rankOrder", entry.get("rank_order", ""))
+    side     = entry.get("_side", entry.get("side", ""))
+    if rank_en:
+        return f"{rank_en} {rank_num} {side}".strip()
+    return division  # last resort
 
-        if not raw:
-            print("not found")
-            continue
 
-        # Also fetch career stats
-        stats = fetch_rikishi_stats(api_id)
-        time.sleep(RATE_LIMIT)
+# ── Main ──────────────────────────────────────────────────────────────────────
 
-        norm = normalize_rikishi(raw, stats=stats)
-        try:
-            print(f"{norm['shikona']} (W:{norm['career_wins']} L:{norm['career_losses']})")
-        except UnicodeEncodeError:
-            print(f"{norm['shikona']} (W:{norm['career_wins']} L:{norm['career_losses']})")
-        all_rikishi.append(norm)
+def run(basho_id: str) -> None:
+    print(f"Scraping banzuke for basho {basho_id} — divisions: {', '.join(DIVISIONS)}")
 
-        # Fetch match history if requested
-        if args.matches:
-            print(f"    Fetching matches...", end=" ", flush=True)
-            matches = fetch_rikishi_matches(api_id)
-            time.sleep(RATE_LIMIT)
-            if matches:
-                print(f"{len(matches)} matches")
-                n = save_matches_to_database(api_id, norm["wrestler_id"], matches)
-                print(f"    Saved {n} bout records")
-            else:
-                print("none")
+    conn = sqlite3.connect(DB_PATH)
+    _ensure_columns(conn)
 
-    # Summary
-    print(f"\n{'='*50}")
-    print(f"Scraped {len(all_rikishi)} rikishi profiles")
-    active = sum(1 for r in all_rikishi if r.get("is_active"))
-    retired = len(all_rikishi) - active
-    print(f"  Active: {active}")
-    print(f"  Retired: {retired}")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    seen_ids: set[str] = set()
 
-    # Save to JSON
-    if args.json_output:
-        with open(args.json_output, "w", encoding="utf-8") as f:
-            json.dump(all_rikishi, f, indent=2, ensure_ascii=False)
-        print(f"  JSON saved to {args.json_output}")
+    for division in DIVISIONS:
+        print(f"\n── {division} ──")
+        entries = _fetch_banzuke(basho_id, division)
+        print(f"  Banzuke entries: {len(entries)}")
 
-    # Save to database
-    if args.db:
-        saved = save_to_database(all_rikishi)
+        for entry in entries:
+            # Numeric wrestler ID (the stable key we migrated to)
+            wrestler_id = str(entry.get("rikishiID") or entry.get("id") or entry.get("rikishi_id", ""))
+            if not wrestler_id or wrestler_id in seen_ids:
+                continue
+            seen_ids.add(wrestler_id)
 
-    print("Done.")
+            rank_label = _build_rank_label(entry, division)
+            rank_value = _rank_sort_value(rank_label)
 
+            # Fetch detail + stats
+            try:
+                detail = _fetch_rikishi_detail(wrestler_id)
+            except Exception as e:
+                print(f"  ✗ detail fetch failed for {wrestler_id}: {e}")
+                detail = {}
+
+            try:
+                stats = _fetch_rikishi_stats(wrestler_id)
+            except Exception as e:
+                print(f"  ✗ stats fetch failed for {wrestler_id}: {e}")
+                stats = {}
+
+            # ── Parse detail ──────────────────────────────────────────────
+            shikona    = detail.get("shikonaEn") or entry.get("shikonaEn", "")
+            shikona_jp = detail.get("shikona")   or entry.get("shikona", "")
+            heya       = detail.get("heya", "")
+            birth_date = detail.get("birthDate", "")
+            height     = detail.get("height")
+            weight     = detail.get("weight")
+            # Shusshin: "Country, City" for foreigners; "Prefecture-ken, City-shi" for Japanese
+            shusshin   = detail.get("birthPlace", detail.get("shusshin", ""))
+            nationality = detail.get("nationality", detail.get("country", ""))
+
+            # ── Parse stats ───────────────────────────────────────────────
+            # Stats uses "winsByDivision" (plural) per API learnings
+            wins_by_div   = stats.get("winsByDivision", {})
+            losses_by_div = stats.get("lossesByDivision", {})
+            abs_by_div    = stats.get("absencesByDivision", {})
+
+            maku_wins   = wins_by_div.get("Makuuchi", 0)   or 0
+            maku_losses = losses_by_div.get("Makuuchi", 0) or 0
+            maku_abs    = abs_by_div.get("Makuuchi", 0)    or 0
+            jury_wins   = wins_by_div.get("Juryo", 0)      or 0
+            jury_losses = losses_by_div.get("Juryo", 0)    or 0
+            jury_abs    = abs_by_div.get("Juryo", 0)       or 0
+
+            # Yusho counts
+            yusho_by_div   = stats.get("yushoByDivision", {})
+            yusho_makuuchi = yusho_by_div.get("Makuuchi", 0) or 0
+            yusho_juryo    = yusho_by_div.get("Juryo", 0)    or 0
+
+            # Current basho record from banzuke entry (wins/losses so far this basho)
+            basho_wins    = entry.get("wins",    0) or 0
+            basho_losses  = entry.get("losses",  0) or 0
+            basho_absences = entry.get("absences", 0) or 0
+
+            row = dict(
+                wrestler_id      = wrestler_id,
+                shikona          = shikona_jp or shikona,
+                shikona_en       = shikona,
+                division         = division,
+                rank_label       = rank_label,
+                rank_value       = rank_value,
+                heya             = heya,
+                birth_date       = birth_date,
+                height           = height,
+                weight           = weight,
+                nationality      = nationality,
+                shusshin         = shusshin,
+                current_basho    = basho_id,
+                basho_wins       = basho_wins,
+                basho_losses     = basho_losses,
+                basho_absences   = basho_absences,
+                makuuchi_wins    = maku_wins,
+                makuuchi_losses  = maku_losses,
+                makuuchi_absences= maku_abs,
+                juryo_wins       = jury_wins,
+                juryo_losses     = jury_losses,
+                juryo_absences   = jury_abs,
+                yusho_makuuchi   = yusho_makuuchi,
+                yusho_juryo      = yusho_juryo,
+                updated_at       = now_iso,
+            )
+
+            _upsert_wrestler(conn, row)
+            print(f"  ✓ {shikona:<20}  {rank_label}")
+
+    conn.commit()
+    conn.close()
+
+    total = len(seen_ids)
+    print(f"\n✅ Done. {total} sekitori upserted for basho {basho_id}.")
+    print("   Run `python -m tools.db_manage sync` to push to Supabase.")
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Scrape Makuuchi + Juryo rikishi data")
+    parser.add_argument(
+        "--basho",
+        default=DEFAULT_BASHO,
+        help=f"BashoId to use (default: {DEFAULT_BASHO}). "
+             "Format: YYYYMM e.g. 202603, 202605.",
+    )
+    args = parser.parse_args()
+    run(args.basho)

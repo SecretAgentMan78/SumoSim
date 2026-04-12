@@ -201,6 +201,7 @@ class SumoDatabase:
                 wrestler_id     TEXT NOT NULL,
                 rank            TEXT NOT NULL,
                 rank_number     INTEGER,
+                side            TEXT,
                 wins            INTEGER NOT NULL DEFAULT 0,
                 losses          INTEGER NOT NULL DEFAULT 0,
                 absences        INTEGER NOT NULL DEFAULT 0,
@@ -233,6 +234,19 @@ class SumoDatabase:
                 last_synced_at  TEXT,
                 row_count       INTEGER DEFAULT 0
             );
+
+            CREATE TABLE IF NOT EXISTS family_relations (
+                wrestler_id     TEXT NOT NULL,
+                related_id      TEXT NOT NULL,
+                relationship    TEXT NOT NULL,
+                PRIMARY KEY (wrestler_id, related_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS modifier_overrides (
+                wrestler_id     TEXT NOT NULL PRIMARY KEY,
+                momentum        TEXT,
+                injury_severity REAL DEFAULT 0.0
+            );
         """)
         conn.close()
 
@@ -260,6 +274,8 @@ class SumoDatabase:
         results["tournament_records"] = self._sync_table_tournament_records()
         results["bout_records"] = self._sync_table_bout_records()
         results["injury_notes"] = self._sync_table_injury_notes()
+        results["family_relations"] = self._sync_table_family_relations()
+        results["modifier_overrides"] = self._sync_table_modifier_overrides()
 
         logger.info(f"Sync complete: {results}")
         return results
@@ -341,18 +357,33 @@ class SumoDatabase:
         return len(rows)
 
     def _sync_table_tournament_records(self) -> int:
-        resp = self._http.get("/tournament_records", params={"select": "*"})
-        resp.raise_for_status()
-        rows = resp.json()
+        # Paginate — may exceed 1000 rows with multi-division data
+        all_rows = []
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = self._http.get("/tournament_records", params={
+                "select": "*",
+                "offset": str(offset),
+                "limit": str(page_size),
+            })
+            resp.raise_for_status()
+            batch = resp.json()
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+
         conn = self._local_conn()
-        for r in rows:
+        for r in all_rows:
             conn.execute(
                 """INSERT OR REPLACE INTO tournament_records
-                   (basho_id, wrestler_id, rank, rank_number, wins, losses,
+                   (basho_id, wrestler_id, rank, rank_number, side, wins, losses,
                     absences, is_yusho, is_jun_yusho, special_prizes)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (r["basho_id"], r["wrestler_id"], r["rank"],
-                 r.get("rank_number"), r["wins"], r["losses"],
+                 r.get("rank_number"), r.get("side"),
+                 r["wins"], r["losses"],
                  r.get("absences", 0),
                  1 if r.get("is_yusho") else 0,
                  1 if r.get("is_jun_yusho") else 0,
@@ -360,11 +391,11 @@ class SumoDatabase:
             )
         conn.execute(
             "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
-            ("tournament_records", datetime.now(timezone.utc).isoformat(), len(rows)),
+            ("tournament_records", datetime.now(timezone.utc).isoformat(), len(all_rows)),
         )
         conn.commit()
         conn.close()
-        return len(rows)
+        return len(all_rows)
 
     def _sync_table_bout_records(self) -> int:
         # Bout records can be large — fetch in pages
@@ -416,6 +447,52 @@ class SumoDatabase:
         conn.execute(
             "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
             ("injury_notes", datetime.now(timezone.utc).isoformat(), len(rows)),
+        )
+        conn.commit()
+        conn.close()
+        return len(rows)
+
+    def _sync_table_family_relations(self) -> int:
+        try:
+            resp = self._http.get("/family_relations", params={"select": "*"})
+            resp.raise_for_status()
+            rows = resp.json()
+        except Exception:
+            return 0
+        conn = self._local_conn()
+        for r in rows:
+            conn.execute(
+                """INSERT OR REPLACE INTO family_relations
+                   (wrestler_id, related_id, relationship)
+                   VALUES (?, ?, ?)""",
+                (r["wrestler_id"], r["related_id"], r["relationship"]),
+            )
+        conn.execute(
+            "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
+            ("family_relations", datetime.now(timezone.utc).isoformat(), len(rows)),
+        )
+        conn.commit()
+        conn.close()
+        return len(rows)
+
+    def _sync_table_modifier_overrides(self) -> int:
+        try:
+            resp = self._http.get("/modifier_overrides", params={"select": "*"})
+            resp.raise_for_status()
+            rows = resp.json()
+        except Exception:
+            return 0
+        conn = self._local_conn()
+        for r in rows:
+            conn.execute(
+                """INSERT OR REPLACE INTO modifier_overrides
+                   (wrestler_id, momentum, injury_severity)
+                   VALUES (?, ?, ?)""",
+                (r["wrestler_id"], r.get("momentum"), r.get("injury_severity", 0.0)),
+            )
+        conn.execute(
+            "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
+            ("modifier_overrides", datetime.now(timezone.utc).isoformat(), len(rows)),
         )
         conn.commit()
         conn.close()
@@ -768,27 +845,32 @@ class SumoDatabase:
     def get_all_wrestlers(self, active_only: bool = True) -> list[WrestlerProfile]:
         """Get all wrestlers, optionally filtered to active only.
 
-        For retired wrestlers, rank comes from the wrestlers table
-        (highest/current rank) rather than banzuke.
+        Active filter excludes stub records (those with no heya or career data).
+        Rank uses COALESCE of current_rank and highest_rank.
         """
         conn = self._local_conn()
         if active_only:
             rows = conn.execute(
-                """SELECT * FROM wrestlers WHERE is_active = 1
+                """SELECT * FROM wrestlers
+                   WHERE is_active = 1
+                     AND (career_wins > 0 OR height_cm IS NOT NULL)
                    ORDER BY
-                       CASE current_rank
+                       CASE COALESCE(current_rank, highest_rank, 'maegashira')
                            WHEN 'yokozuna' THEN 1
                            WHEN 'ozeki' THEN 2
                            WHEN 'sekiwake' THEN 3
                            WHEN 'komusubi' THEN 4
                            WHEN 'maegashira' THEN 5
-                           ELSE 6
+                           WHEN 'juryo' THEN 6
+                           ELSE 7
                        END,
-                       current_rank_number"""
+                       current_rank_number,
+                       career_wins DESC"""
             ).fetchall()
         else:
             rows = conn.execute(
                 """SELECT * FROM wrestlers
+                   WHERE (career_wins > 0 OR height_cm IS NOT NULL)
                    ORDER BY
                        is_active DESC,
                        CASE COALESCE(highest_rank, current_rank, 'maegashira')
@@ -797,7 +879,8 @@ class SumoDatabase:
                            WHEN 'sekiwake' THEN 3
                            WHEN 'komusubi' THEN 4
                            WHEN 'maegashira' THEN 5
-                           ELSE 6
+                           WHEN 'juryo' THEN 6
+                           ELSE 7
                        END,
                        total_yusho DESC,
                        career_wins DESC"""
@@ -901,6 +984,164 @@ class SumoDatabase:
         ).fetchone()
         conn.close()
         return row["shikona"] if row else f"#{wrestler_id}"
+
+    # ── Family relations ───────────────────────────────────────────
+
+    def get_family_relations(self, wrestler_id: str) -> list[dict]:
+        """Get all family relations for a wrestler.
+
+        Returns list of {related_id, related_name, relationship}.
+        Includes both directions (e.g. if A is uncle of B,
+        querying B also returns A as nephew).
+        """
+        conn = self._local_conn()
+        rows = conn.execute(
+            """SELECT fr.related_id AS related_id, fr.relationship,
+                      w.shikona AS related_name
+               FROM family_relations fr
+               LEFT JOIN wrestlers w ON w.wrestler_id = fr.related_id
+               WHERE fr.wrestler_id = ?
+               UNION
+               SELECT fr.wrestler_id AS related_id,
+                      CASE fr.relationship
+                          WHEN 'uncle' THEN 'nephew'
+                          WHEN 'nephew' THEN 'uncle'
+                          WHEN 'father' THEN 'son'
+                          WHEN 'son' THEN 'father'
+                          WHEN 'grandfather' THEN 'grandson'
+                          WHEN 'grandson' THEN 'grandfather'
+                          WHEN 'brother' THEN 'brother'
+                          WHEN 'cousin' THEN 'cousin'
+                          ELSE fr.relationship
+                      END AS relationship,
+                      w.shikona AS related_name
+               FROM family_relations fr
+               LEFT JOIN wrestlers w ON w.wrestler_id = fr.wrestler_id
+               WHERE fr.related_id = ?""",
+            (wrestler_id, wrestler_id),
+        ).fetchall()
+        conn.close()
+        return [
+            {
+                "related_id": r["related_id"],
+                "related_name": r["related_name"] or f"#{r['related_id']}",
+                "relationship": r["relationship"],
+            }
+            for r in rows
+        ]
+
+    def add_family_relation(
+        self, wrestler_id: str, related_id: str, relationship: str
+    ) -> bool:
+        """Add a family relation. Only stores one direction."""
+        conn = self._local_conn()
+        try:
+            conn.execute(
+                """INSERT OR REPLACE INTO family_relations
+                   (wrestler_id, related_id, relationship)
+                   VALUES (?, ?, ?)""",
+                (wrestler_id, related_id, relationship),
+            )
+            conn.commit()
+
+            # Also push to Supabase
+            if self.is_online:
+                try:
+                    self._rest_upsert("family_relations", {
+                        "wrestler_id": wrestler_id,
+                        "related_id": related_id,
+                        "relationship": relationship,
+                    }, on_conflict="wrestler_id,related_id")
+                except Exception:
+                    pass
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to add family relation: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def remove_family_relation(self, wrestler_id: str, related_id: str) -> bool:
+        """Remove a family relation."""
+        conn = self._local_conn()
+        try:
+            conn.execute(
+                "DELETE FROM family_relations WHERE wrestler_id = ? AND related_id = ?",
+                (wrestler_id, related_id),
+            )
+            conn.commit()
+            return True
+        except Exception:
+            return False
+        finally:
+            conn.close()
+
+    # ── Modifier overrides ─────────────────────────────────────────
+
+    def get_modifier_overrides(self) -> dict[str, dict]:
+        """Get all saved modifier overrides.
+
+        Returns: {wrestler_id: {"momentum": str|None, "injury_severity": float}}
+        """
+        conn = self._local_conn()
+        try:
+            rows = conn.execute("SELECT * FROM modifier_overrides").fetchall()
+        except Exception:
+            return {}
+        finally:
+            conn.close()
+
+        return {
+            r["wrestler_id"]: {
+                "momentum": r["momentum"],
+                "injury_severity": r["injury_severity"] or 0.0,
+            }
+            for r in rows
+        }
+
+    def save_modifier_override(
+        self, wrestler_id: str, momentum: str | None, injury_severity: float
+    ) -> None:
+        """Save a modifier override for a wrestler (local + Supabase)."""
+        conn = self._local_conn()
+        try:
+            if momentum is None and injury_severity == 0.0:
+                # No overrides — remove the row
+                conn.execute(
+                    "DELETE FROM modifier_overrides WHERE wrestler_id = ?",
+                    (wrestler_id,),
+                )
+                # Also remove from Supabase
+                if self.is_online:
+                    try:
+                        self._http.delete(
+                            f"/modifier_overrides?wrestler_id=eq.{wrestler_id}"
+                        )
+                    except Exception:
+                        pass
+            else:
+                conn.execute(
+                    """INSERT OR REPLACE INTO modifier_overrides
+                       (wrestler_id, momentum, injury_severity)
+                       VALUES (?, ?, ?)""",
+                    (wrestler_id, momentum, injury_severity),
+                )
+                # Also push to Supabase
+                if self.is_online:
+                    try:
+                        self._rest_upsert("modifier_overrides", {
+                            "wrestler_id": wrestler_id,
+                            "momentum": momentum,
+                            "injury_severity": injury_severity,
+                        }, on_conflict="wrestler_id")
+                    except Exception:
+                        pass
+            conn.commit()
+        except Exception as e:
+            logger.debug(f"Failed to save modifier override: {e}")
+        finally:
+            conn.close()
 
     # ================================================================
     # MIGRATION: Load existing Python data files into the database
