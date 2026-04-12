@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyz
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# SumoSim — cached & scraped data (never commit these)
+data/cache/
+data/*.db
+data/fonts/
+.h2h_cache/
+
+# SumoSim — local DB (deleted and rebuilt regularly)
+*.db
+*.db-shm
+*.db-wal
+
+# SumoSim — sensitive config (PAT, Supabase keys)
+.env
+config_local.yaml
+secrets.yaml
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
