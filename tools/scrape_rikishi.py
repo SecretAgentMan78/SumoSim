@@ -72,31 +72,52 @@ def _get(path: str, cache_key: str | None = None) -> dict | list:
 
 
 def _ensure_columns(conn: sqlite3.Connection) -> None:
-    """Add new columns to wrestlers table if they don't exist yet."""
+    """
+    Add any columns that may be missing from the wrestlers table.
+    Covers columns that were absent in older DB schemas as well as all new
+    Juryo-support columns.  Safe to call repeatedly.
+    """
     cur = conn.cursor()
     existing = {row[1] for row in cur.execute("PRAGMA table_info(wrestlers)")}
     needed = {
-        "division":      "TEXT NOT NULL DEFAULT 'Makuuchi'",
-        "rank_label":    "TEXT",          # e.g. "Maegashira 5 West"
-        "rank_value":    "INTEGER",       # numeric sort order (lower = higher rank)
-        "current_basho": "TEXT",          # bashoId of most recent data
-        "basho_wins":    "INTEGER",       # wins in current_basho
-        "basho_losses":  "INTEGER",       # losses in current_basho
-        "basho_absences": "INTEGER",      # absences in current_basho
-        "makuuchi_wins":  "INTEGER",
-        "makuuchi_losses": "INTEGER",
-        "makuuchi_absences": "INTEGER",
-        "juryo_wins":    "INTEGER",
-        "juryo_losses":  "INTEGER",
-        "juryo_absences": "INTEGER",
-        "yusho_makuuchi": "INTEGER DEFAULT 0",
-        "yusho_juryo":   "INTEGER DEFAULT 0",
-        "updated_at":    "TEXT",
+        # May be absent in older schemas
+        "shikona_en":          "TEXT",
+        "nationality":         "TEXT",
+        "shusshin":            "TEXT",
+        # Division / rank
+        "division":            "TEXT NOT NULL DEFAULT 'Makuuchi'",
+        "rank_label":          "TEXT",
+        "rank_value":          "INTEGER",
+        # Current-basho snapshot
+        "current_basho":       "TEXT",
+        "basho_wins":          "INTEGER DEFAULT 0",
+        "basho_losses":        "INTEGER DEFAULT 0",
+        "basho_absences":      "INTEGER DEFAULT 0",
+        # Career stats by division
+        "makuuchi_wins":       "INTEGER DEFAULT 0",
+        "makuuchi_losses":     "INTEGER DEFAULT 0",
+        "makuuchi_absences":   "INTEGER DEFAULT 0",
+        "juryo_wins":          "INTEGER DEFAULT 0",
+        "juryo_losses":        "INTEGER DEFAULT 0",
+        "juryo_absences":      "INTEGER DEFAULT 0",
+        "yusho_makuuchi":      "INTEGER DEFAULT 0",
+        "yusho_juryo":         "INTEGER DEFAULT 0",
+        "updated_at":          "TEXT",
     }
+    added = []
     for col, typedef in needed.items():
         if col not in existing:
             cur.execute(f"ALTER TABLE wrestlers ADD COLUMN {col} {typedef}")
+            added.append(col)
+    if added:
+        print(f"  [migrate] Added column(s): {', '.join(added)}")
     conn.commit()
+
+
+def _live_columns(conn: sqlite3.Connection) -> set[str]:
+    """Return the set of column names currently in the wrestlers table."""
+    cur = conn.cursor()
+    return {row[1] for row in cur.execute("PRAGMA table_info(wrestlers)")}
 
 
 def _rank_sort_value(rank_label: str) -> int:
@@ -160,52 +181,30 @@ def _fetch_rikishi_stats(rikishi_id: str) -> dict:
 
 
 def _upsert_wrestler(conn: sqlite3.Connection, row: dict) -> None:
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO wrestlers (
-            wrestler_id, shikona, shikona_en, division, rank_label, rank_value,
-            heya, birth_date, height, weight, nationality, shusshin,
-            current_basho, basho_wins, basho_losses, basho_absences,
-            makuuchi_wins, makuuchi_losses, makuuchi_absences,
-            juryo_wins, juryo_losses, juryo_absences,
-            yusho_makuuchi, yusho_juryo, updated_at
-        ) VALUES (
-            :wrestler_id, :shikona, :shikona_en, :division, :rank_label, :rank_value,
-            :heya, :birth_date, :height, :weight, :nationality, :shusshin,
-            :current_basho, :basho_wins, :basho_losses, :basho_absences,
-            :makuuchi_wins, :makuuchi_losses, :makuuchi_absences,
-            :juryo_wins, :juryo_losses, :juryo_absences,
-            :yusho_makuuchi, :yusho_juryo, :updated_at
-        )
-        ON CONFLICT(wrestler_id) DO UPDATE SET
-            shikona          = excluded.shikona,
-            shikona_en       = excluded.shikona_en,
-            division         = excluded.division,
-            rank_label       = excluded.rank_label,
-            rank_value       = excluded.rank_value,
-            heya             = excluded.heya,
-            birth_date       = excluded.birth_date,
-            height           = excluded.height,
-            weight           = excluded.weight,
-            nationality      = excluded.nationality,
-            shusshin         = excluded.shusshin,
-            current_basho    = excluded.current_basho,
-            basho_wins       = excluded.basho_wins,
-            basho_losses     = excluded.basho_losses,
-            basho_absences   = excluded.basho_absences,
-            makuuchi_wins    = excluded.makuuchi_wins,
-            makuuchi_losses  = excluded.makuuchi_losses,
-            makuuchi_absences= excluded.makuuchi_absences,
-            juryo_wins       = excluded.juryo_wins,
-            juryo_losses     = excluded.juryo_losses,
-            juryo_absences   = excluded.juryo_absences,
-            yusho_makuuchi   = excluded.yusho_makuuchi,
-            yusho_juryo      = excluded.yusho_juryo,
-            updated_at       = excluded.updated_at
-        """,
-        row,
+    """
+    Upsert a wrestler row using only columns that actually exist in the DB.
+    Building the SQL dynamically means this never breaks due to schema drift:
+    unknown keys in `row` are silently ignored, and missing DB columns don't
+    cause OperationalError.
+    """
+    live_cols = _live_columns(conn)
+    # Only include keys present in both our data dict AND the live schema
+    cols = [k for k in row if k in live_cols]
+    if not cols:
+        return
+
+    col_list    = ", ".join(cols)
+    placeholder = ", ".join(f":{c}" for c in cols)
+    update_set  = ", ".join(
+        f"{c} = excluded.{c}" for c in cols if c != "wrestler_id"
     )
+    sql = f"""
+        INSERT INTO wrestlers ({col_list})
+        VALUES ({placeholder})
+        ON CONFLICT(wrestler_id) DO UPDATE SET
+            {update_set}
+    """
+    conn.cursor().execute(sql, row)
 
 
 def _build_rank_label(entry: dict, division: str) -> str:
