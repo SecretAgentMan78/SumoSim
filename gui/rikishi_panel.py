@@ -62,11 +62,14 @@ _RANK_COLORS = {
     Rank.SEKIWAKE: "#00008B",
     Rank.KOMUSUBI: "#006400",
     Rank.MAEGASHIRA: "#3C3C3C",
+    Rank.JURYO: "#6B4C8A",
 }
 
 _RANK_LABELS = {
     Rank.YOKOZUNA: "Y", Rank.OZEKI: "O", Rank.SEKIWAKE: "S",
-    Rank.KOMUSUBI: "K", Rank.MAEGASHIRA: "M",
+    Rank.KOMUSUBI: "K", Rank.MAEGASHIRA: "M", Rank.JURYO: "J",
+    Rank.MAKUSHITA: "Ms", Rank.SANDANME: "Sd",
+    Rank.JONIDAN: "Jd", Rank.JONOKUCHI: "Jk",
 }
 
 # ── Country code mapping for flags ────────────────────────────────
@@ -158,8 +161,13 @@ class RikishiDossierPanel(QWidget):
     def _refresh_list(self) -> None:
         """Reload wrestler list from database."""
         if not self._db:
+            print("DEBUG: no db")
             return
         self._all_wrestlers = self._db.get_all_wrestlers(active_only=self._active_only)
+        print(f"DEBUG: got {len(self._all_wrestlers)} wrestlers, active_only={self._active_only}")
+        if self._all_wrestlers:
+            for w in self._all_wrestlers[:5]:
+                print(f"  DEBUG: {w.wrestler_id} {w.shikona} rank={w.rank.value} num={w.rank_number} side={w.side}")
         self._populate_list()
 
     # ── UI Construction ────────────────────────────────────────────
@@ -184,7 +192,7 @@ class RikishiDossierPanel(QWidget):
         self._search_box.textChanged.connect(self._filter_list)
         left_layout.addWidget(self._search_box)
 
-        self._active_toggle = QCheckBox("Active wrestlers only")
+        self._active_toggle = QCheckBox("Current sekitori only")
         self._active_toggle.setChecked(True)
         self._active_toggle.toggled.connect(self._on_active_toggled)
         left_layout.addWidget(self._active_toggle)
@@ -224,19 +232,32 @@ class RikishiDossierPanel(QWidget):
 
     def _populate_list(self) -> None:
         self._wrestler_list.clear()
-        seen_shikona: set[str] = set()
+        seen_ids: set[str] = set()
+
+        _SIDE_SHORT = {"east": "E", "west": "W"}
+
         for w in self._all_wrestlers:
-            # Skip duplicates (same shikona, different IDs from stubs)
-            if w.shikona in seen_shikona:
+            if w.wrestler_id in seen_ids:
                 continue
-            seen_shikona.add(w.shikona)
+            seen_ids.add(w.wrestler_id)
 
             item = QListWidgetItem()
             rl = _RANK_LABELS.get(w.rank, "?")
-            num = str(w.rank_number) if w.rank_number else ""
-            label = f" {rl}{num}  {w.shikona}"
-            if not w.is_active:
+
+            if w.is_active:
+                # Active: full rank notation — e.g. "Y1E  Hoshoryu"
+                num = str(w.rank_number) if w.rank_number else ""
+                side = _SIDE_SHORT.get(w.side, "") if w.side else ""
+                rank_display = f"{rl}{num}{side}"
+                label = f" {rank_display}  {w.shikona}"
+            else:
+                # Inactive: simple rank title only + yusho count
+                # e.g. "Y  Hakuho  (45 Yusho)  (引退)"
+                label = f" {rl}  {w.shikona}"
+                if w.total_yusho:
+                    label += f"  ({w.total_yusho} Yusho)"
                 label += "  (引退)"
+
             item.setText(label)
             item.setData(Qt.ItemDataRole.UserRole, w.wrestler_id)
 
@@ -641,6 +662,14 @@ class RikishiDossierPanel(QWidget):
             career_layout.addWidget(abs_label)
             career_layout.addWidget(QLabel("A"))
 
+        # Win rate (next to W-L-A)
+        total = w.career_wins + w.career_losses
+        if total > 0:
+            rate = w.career_wins / total * 100
+            rate_label = QLabel(f"({rate:.1f}%)")
+            rate_label.setStyleSheet("color: #666; font-size: 13px;")
+            career_layout.addWidget(rate_label)
+
         career_layout.addWidget(self._make_separator())
 
         if w.total_yusho:
@@ -648,14 +677,6 @@ class RikishiDossierPanel(QWidget):
             yusho_label.setFont(QFont("Outfit", 14, QFont.Weight.Bold))
             yusho_label.setStyleSheet("color: #B8860B;")
             career_layout.addWidget(yusho_label)
-
-        # Win rate
-        total = w.career_wins + w.career_losses
-        if total > 0:
-            rate = w.career_wins / total * 100
-            rate_label = QLabel(f"({rate:.1f}%)")
-            rate_label.setStyleSheet("color: #666; font-size: 13px;")
-            career_layout.addWidget(rate_label)
 
         career_layout.addWidget(self._make_separator())
 
@@ -915,36 +936,45 @@ class RikishiDossierPanel(QWidget):
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setStyleSheet("alternate-background-color: #F0EDE4;")
 
-        # Load bouts
-        bouts = self._db.get_career_bouts(w.wrestler_id)
+        # Load bouts with per-bout rank data
+        bouts = self._db.get_career_bouts_detailed(w.wrestler_id)
 
-        # Pre-load opponent names
-        opponent_cache: dict[str, str] = {}
+        # Pre-load opponent info in bulk (name, heya, style)
+        opp_ids = list({
+            bout["west_id"] if bout["east_id"] == w.wrestler_id else bout["east_id"]
+            for bout in bouts
+        })
+        opp_info = self._db.get_wrestler_info_bulk(opp_ids)
 
         table.setRowCount(len(bouts))
         for row, bout in enumerate(bouts):
-            # Determine opponent
-            if bout.east_id == w.wrestler_id:
-                opp_id = bout.west_id
+            # Determine opponent and their rank from the bout record
+            if bout["east_id"] == w.wrestler_id:
+                opp_id = bout["west_id"]
+                opp_rank_from_bout = bout.get("west_rank", "")
             else:
-                opp_id = bout.east_id
+                opp_id = bout["east_id"]
+                opp_rank_from_bout = bout.get("east_rank", "")
 
-            # Opponent name (cached)
-            if opp_id not in opponent_cache:
-                opponent_cache[opp_id] = self._db.get_wrestler_name(opp_id)
-            opp_name = opponent_cache[opp_id]
+            info = opp_info.get(opp_id, {})
+            opp_name = info.get("name", f"#{opp_id}")
+            opp_heya = info.get("heya", "")
+            opp_style = info.get("style", "")
 
-            won = bout.winner_id == w.wrestler_id
+            # Use per-bout rank (from API match data), fall back to current rank
+            opp_rank = opp_rank_from_bout or info.get("rank", "")
 
-            table.setItem(row, 0, QTableWidgetItem(bout.basho_id))
+            won = bout["winner_id"] == w.wrestler_id
 
-            day_item = QTableWidgetItem(str(bout.day))
+            table.setItem(row, 0, QTableWidgetItem(bout["basho_id"]))
+
+            day_item = QTableWidgetItem(str(bout["day"]))
             day_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             table.setItem(row, 1, day_item)
 
             table.setItem(row, 2, QTableWidgetItem(opp_name))
-            table.setItem(row, 3, QTableWidgetItem(""))  # Opp rank — would need basho-specific lookup
-            table.setItem(row, 4, QTableWidgetItem(""))  # Opp heya — would need wrestler lookup
+            table.setItem(row, 3, QTableWidgetItem(opp_rank))
+            table.setItem(row, 4, QTableWidgetItem(opp_heya))
             
             result_item = QTableWidgetItem("WIN" if won else "LOSS")
             result_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -952,19 +982,11 @@ class RikishiDossierPanel(QWidget):
             result_item.setFont(QFont("Outfit", -1, QFont.Weight.Bold))
             table.setItem(row, 5, result_item)
 
-            table.setItem(row, 6, QTableWidgetItem(bout.kimarite or ""))
-            table.setItem(row, 7, QTableWidgetItem(""))  # Opp style
+            table.setItem(row, 6, QTableWidgetItem(bout.get("kimarite") or ""))
+            table.setItem(row, 7, QTableWidgetItem(opp_style))
 
         table.setRowCount(len(bouts))
         layout.addWidget(table)
-
-        # Summary
-        wins = sum(1 for b in bouts if b.winner_id == w.wrestler_id)
-        losses = len(bouts) - wins
-        summary = QLabel(f"Total bouts: {len(bouts)}  |  Wins: {wins}  |  Losses: {losses}")
-        summary.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        summary.setStyleSheet("padding: 8px; color: #666;")
-        layout.addWidget(summary)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(dlg.close)

@@ -62,11 +62,14 @@ _RANK_COLORS = {
     Rank.SEKIWAKE: "#00008B",
     Rank.KOMUSUBI: "#006400",
     Rank.MAEGASHIRA: "#3C3C3C",
+    Rank.JURYO: "#6B4C8A",
 }
 
 _RANK_LABELS = {
     Rank.YOKOZUNA: "Y", Rank.OZEKI: "O", Rank.SEKIWAKE: "S",
-    Rank.KOMUSUBI: "K", Rank.MAEGASHIRA: "M",
+    Rank.KOMUSUBI: "K", Rank.MAEGASHIRA: "M", Rank.JURYO: "J",
+    Rank.MAKUSHITA: "Ms", Rank.SANDANME: "Sd",
+    Rank.JONIDAN: "Jd", Rank.JONOKUCHI: "Jk",
 }
 
 # ── Country code mapping for flags ────────────────────────────────
@@ -176,7 +179,7 @@ class RikishiDossierPanel(QWidget):
         left_layout.setContentsMargins(8, 8, 4, 8)
 
         list_label = QLabel("Rikishi")
-        list_label.setFont(QFont("", 12, QFont.Weight.Bold))
+        list_label.setFont(QFont("Outfit", 12, QFont.Weight.Bold))
         left_layout.addWidget(list_label)
 
         self._search_box = QLineEdit()
@@ -184,7 +187,7 @@ class RikishiDossierPanel(QWidget):
         self._search_box.textChanged.connect(self._filter_list)
         left_layout.addWidget(self._search_box)
 
-        self._active_toggle = QCheckBox("Active wrestlers only")
+        self._active_toggle = QCheckBox("Current sekitori only")
         self._active_toggle.setChecked(True)
         self._active_toggle.toggled.connect(self._on_active_toggled)
         left_layout.addWidget(self._active_toggle)
@@ -210,7 +213,7 @@ class RikishiDossierPanel(QWidget):
         # Placeholder
         self._placeholder = QLabel("Select a wrestler to view their dossier")
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._placeholder.setStyleSheet("color: #999; font-size: 14px; padding: 40px;")
+        self._placeholder.setStyleSheet("color: #999; font-size: 16px; padding: 40px;")
         self._dossier_layout.addWidget(self._placeholder)
         self._dossier_layout.addStretch()
 
@@ -224,13 +227,32 @@ class RikishiDossierPanel(QWidget):
 
     def _populate_list(self) -> None:
         self._wrestler_list.clear()
+        seen_ids: set[str] = set()
+
+        _SIDE_SHORT = {"east": "E", "west": "W"}
+
         for w in self._all_wrestlers:
+            if w.wrestler_id in seen_ids:
+                continue
+            seen_ids.add(w.wrestler_id)
+
             item = QListWidgetItem()
             rl = _RANK_LABELS.get(w.rank, "?")
-            num = str(w.rank_number) if w.rank_number else ""
-            label = f" {rl}{num}  {w.shikona}"
-            if not w.is_active:
+
+            if w.is_active:
+                # Active: full rank notation — e.g. "Y1E  Hoshoryu"
+                num = str(w.rank_number) if w.rank_number else ""
+                side = _SIDE_SHORT.get(w.side, "") if w.side else ""
+                rank_display = f"{rl}{num}{side}"
+                label = f" {rank_display}  {w.shikona}"
+            else:
+                # Inactive: simple rank title only + yusho count
+                # e.g. "Y  Hakuho  (45 Yusho)  (引退)"
+                label = f" {rl}  {w.shikona}"
+                if w.total_yusho:
+                    label += f"  ({w.total_yusho} Yusho)"
                 label += "  (引退)"
+
             item.setText(label)
             item.setData(Qt.ItemDataRole.UserRole, w.wrestler_id)
 
@@ -284,18 +306,25 @@ class RikishiDossierPanel(QWidget):
 
         # Photo
         photo_label = QLabel()
-        photo_label.setFixedSize(140, 140)
+        photo_label.setMinimumSize(200, 250)
+        photo_label.setMaximumWidth(250)
         photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         photo_label.setStyleSheet(
             "border: 3px solid #8B0000; border-radius: 8px; background-color: #F0EBE0;"
         )
         photo_path = _rikishi_photo(w.wrestler_id, w.shikona)
         if photo_path:
-            px = QPixmap(photo_path).scaledToWidth(134, Qt.TransformationMode.SmoothTransformation)
-            if px.height() > 134:
-                px = px.copy(0, 0, 134, 134)
+            px = QPixmap(photo_path)
+            # Scale to fit within 244x300, keeping aspect ratio — no cropping
+            px = px.scaled(
+                244, 300,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             photo_label.setPixmap(px)
+            photo_label.setFixedSize(px.width() + 6, px.height() + 6)
         else:
+            photo_label.setFixedSize(200, 250)
             photo_label.setText("No photo")
             photo_label.setStyleSheet(
                 photo_label.styleSheet() + " color: #999; font-size: 11px;"
@@ -310,12 +339,12 @@ class RikishiDossierPanel(QWidget):
         name_row = QHBoxLayout()
         if w.shikona_jp:
             kanji_label = QLabel(w.shikona_jp)
-            kanji_label.setFont(QFont("", 28, QFont.Weight.Bold))
+            kanji_label.setFont(QFont("Outfit", 28, QFont.Weight.Bold))
             kanji_label.setStyleSheet("color: #1A1A1A;")
             name_row.addWidget(kanji_label)
 
         eng_label = QLabel(w.shikona)
-        eng_label.setFont(QFont("", 20 if w.shikona_jp else 28, QFont.Weight.Bold))
+        eng_label.setFont(QFont("Outfit", 20 if w.shikona_jp else 28, QFont.Weight.Bold))
         eng_label.setStyleSheet(f"color: {_RANK_COLORS.get(w.rank, '#333')};")
         name_row.addWidget(eng_label)
         name_row.addStretch()
@@ -323,7 +352,7 @@ class RikishiDossierPanel(QWidget):
 
         # Rank
         rank_label = QLabel(w.full_rank)
-        rank_label.setFont(QFont("", 14))
+        rank_label.setFont(QFont("Outfit", 14))
         rank_label.setStyleSheet(f"color: {_RANK_COLORS.get(w.rank, '#333')};")
         bio_layout.addWidget(rank_label)
 
@@ -333,10 +362,14 @@ class RikishiDossierPanel(QWidget):
             dob_text = f"DOB: {w.birth_date.strftime('%B %d, %Y')} (age {age})"
         else:
             dob_text = "DOB: Unknown"
-        bio_layout.addWidget(QLabel(dob_text))
+        dob_label = QLabel(dob_text)
+        dob_label.setFont(QFont("Outfit", 12))
+        bio_layout.addWidget(dob_label)
 
         # Heya
-        bio_layout.addWidget(QLabel(f"Heya: {w.heya}"))
+        heya_label = QLabel(f"Heya: {w.heya}")
+        heya_label.setFont(QFont("Outfit", 12))
+        bio_layout.addWidget(heya_label)
 
         # Country + flag + prefecture
         country_row = QHBoxLayout()
@@ -348,6 +381,7 @@ class RikishiDossierPanel(QWidget):
         else:
             from_text = f"From: {country_display}"
         country_label = QLabel(from_text)
+        country_label.setFont(QFont("Outfit", 12))
         country_row.addWidget(country_label)
 
         # Flag from CDN — resolve country name to code
@@ -380,10 +414,162 @@ class RikishiDossierPanel(QWidget):
                 f"{w.height_cm:.0f} cm ({_cm_to_imperial(w.height_cm)}) / "
                 f"{w.weight_kg:.0f} kg ({_kg_to_imperial(w.weight_kg)})"
             )
-            bio_layout.addWidget(QLabel(hw_text))
+            hw_label = QLabel(hw_text)
+            hw_label.setFont(QFont("Outfit", 12))
+            bio_layout.addWidget(hw_label)
 
-        bio_layout.addStretch()
-        header.addLayout(bio_layout, stretch=1)
+        # ── Modifier controls (momentum, injury) ───────────────────
+        mod_layout = QHBoxLayout()
+        mod_layout.setSpacing(4)
+        mod_layout.setContentsMargins(0, 8, 0, 0)
+
+        # Momentum
+        mom_label = QLabel("Momentum:")
+        mom_label.setFont(QFont("Outfit", 12))
+        mod_layout.addWidget(mom_label)
+        mom_combo = QComboBox()
+        mom_combo.setFixedWidth(100)
+        mom_combo.setFont(QFont("Outfit", 12))
+        mom_combo.addItem("Auto", None)
+        from data.models import MomentumState
+        for ms in MomentumState:
+            mom_combo.addItem(ms.value.title(), ms)
+        mom_combo.currentIndexChanged.connect(
+            lambda idx, wid=w.wrestler_id: self._on_dossier_modifier_changed(wid, "momentum", mom_combo.currentData())
+        )
+        mod_layout.addWidget(mom_combo)
+
+        mod_layout.addSpacing(16)
+
+        # Injury
+        inj_label = QLabel("Injury:")
+        inj_label.setFont(QFont("Outfit", 12))
+        mod_layout.addWidget(inj_label)
+        from PyQt6.QtWidgets import QDoubleSpinBox
+        inj_spin = QDoubleSpinBox()
+        inj_spin.setFixedWidth(80)
+        inj_spin.setFont(QFont("Outfit", 12))
+        inj_spin.setRange(0.0, 1.0)
+        inj_spin.setSingleStep(0.1)
+        inj_spin.setValue(0.0)
+        inj_spin.setDecimals(2)
+        inj_spin.valueChanged.connect(
+            lambda val, wid=w.wrestler_id: self._on_dossier_modifier_changed(wid, "injury", val)
+        )
+        mod_layout.addWidget(inj_spin)
+
+        mod_layout.addStretch()
+
+        # Load current values from modifier panel if available
+        self._load_current_modifiers(w.wrestler_id, mom_combo, inj_spin)
+
+        bio_layout.addLayout(mod_layout)
+
+        header.addLayout(bio_layout)
+
+        # ── Shikona History ────────────────────────────────────────
+        shikona_group = QGroupBox("Shikona History")
+        shikona_group.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
+        shikona_group.setFixedWidth(200)
+        shikona_vbox = QVBoxLayout(shikona_group)
+        shikona_vbox.setSpacing(2)
+        shikona_vbox.setContentsMargins(8, 12, 8, 8)
+
+        api_id = w.api_id or (int(w.wrestler_id) if w.wrestler_id.isdigit() else None)
+        shikona_history = self._fetch_shikona_history(api_id) if api_id else []
+        if shikona_history:
+            # Filter out the last entry if it's just the short shikona
+            # (API often adds a redundant entry with just the ring name)
+            filtered = []
+            for entry in shikona_history:
+                name_en = entry.get("shikonaEn", "")
+                # Skip entries where the name has no space (just the short shikona)
+                # unless it's the only entry
+                if " " in name_en or len(shikona_history) == 1:
+                    filtered.append(entry)
+
+            if not filtered:
+                filtered = shikona_history  # Fallback: show all if filter removed everything
+
+            for entry in filtered:
+                basho = entry.get("bashoId", "")
+                name_en = entry.get("shikonaEn", "")
+                # Format basho as YYYY-MM
+                if len(basho) == 6:
+                    basho_fmt = f"{basho[:4]}-{basho[4:]}"
+                else:
+                    basho_fmt = basho
+                row_label = QLabel(f"{basho_fmt}  {name_en}")
+                row_label.setFont(QFont("Outfit", 9))
+                row_label.setStyleSheet("color: #333;")
+                shikona_vbox.addWidget(row_label)
+        else:
+            shikona_vbox.addWidget(QLabel("No history available"))
+
+        shikona_vbox.addStretch()
+        header.addWidget(shikona_group)
+
+        # ── Family ─────────────────────────────────────────────────
+        family_group = QGroupBox("Family in Sumo")
+        family_group.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
+        family_group.setFixedWidth(200)
+        family_vbox = QVBoxLayout(family_group)
+        family_vbox.setSpacing(2)
+        family_vbox.setContentsMargins(8, 12, 8, 8)
+
+        # Load existing family relations
+        if self._db:
+            relations = self._db.get_family_relations(w.wrestler_id)
+        else:
+            relations = []
+
+        if relations:
+            for rel in relations:
+                rel_label = QLabel(f"{rel['relationship'].title()}: {rel['related_name']}")
+                rel_label.setFont(QFont("Outfit", 9))
+                rel_label.setStyleSheet("color: #333;")
+                family_vbox.addWidget(rel_label)
+        else:
+            no_family = QLabel("None recorded")
+            no_family.setFont(QFont("Outfit", 9))
+            no_family.setStyleSheet("color: #999;")
+            family_vbox.addWidget(no_family)
+
+        family_vbox.addStretch()
+
+        # Add relation button
+        add_family_btn = QPushButton("+ Add")
+        add_family_btn.setFixedWidth(60)
+        add_family_btn.setFont(QFont("Outfit", 8))
+        add_family_btn.clicked.connect(lambda: self._on_add_family(w))
+        family_vbox.addWidget(add_family_btn)
+
+        header.addWidget(family_group)
+
+        # ── Rank Progression Graph ──────────────────────────────────
+        rank_group = QGroupBox("Rank Progression")
+        rank_group.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
+        rank_group.setMinimumWidth(320)
+        rank_vbox = QVBoxLayout(rank_group)
+        rank_vbox.setContentsMargins(4, 12, 4, 4)
+
+        if self._db:
+            # Fetch all tournament records for this wrestler
+            all_recs = self._db.get_tournament_records(w.wrestler_id, limit=50)
+            if all_recs and len(all_recs) >= 2:
+                rank_widget = self._build_rank_chart(all_recs)
+                rank_vbox.addWidget(rank_widget)
+            else:
+                no_data = QLabel("Insufficient data")
+                no_data.setFont(QFont("Outfit", 9))
+                no_data.setStyleSheet("color: #999;")
+                no_data.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                rank_vbox.addWidget(no_data)
+        else:
+            rank_vbox.addWidget(QLabel("No database"))
+
+        header.addWidget(rank_group)
+        header.addStretch()
 
         header_widget = QWidget()
         header_widget.setLayout(header)
@@ -395,7 +581,7 @@ class RikishiDossierPanel(QWidget):
 
         style_text = w.fighting_style.value.title()
         style_label = QLabel(f"Style: {style_text}")
-        style_label.setFont(QFont("", 22, QFont.Weight.Bold))
+        style_label.setFont(QFont("Outfit", 22, QFont.Weight.Bold))
         style_layout.addWidget(style_label)
 
         style_layout.addWidget(self._make_separator())
@@ -409,19 +595,21 @@ class RikishiDossierPanel(QWidget):
         if top_kim:
             for technique, count in top_kim:
                 kim_frame = QFrame()
-                kim_frame.setFixedWidth(160)
+                kim_frame.setFixedWidth(270)
                 kim_layout = QVBoxLayout(kim_frame)
                 kim_layout.setContentsMargins(4, 4, 4, 4)
                 kim_layout.setSpacing(4)
 
                 # Technique image
                 kim_img = QLabel()
-                kim_img.setFixedSize(140, 140)
+                kim_img.setFixedSize(250, 250)
                 kim_img.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 img_path = _image_path("kimarite", f"{technique}.jpg")
+                if not img_path:
+                    img_path = _image_path("kimarite", f"{technique}.png")
                 if img_path:
                     px = QPixmap(img_path).scaled(
-                        140, 140, Qt.AspectRatioMode.KeepAspectRatio,
+                        250, 250, Qt.AspectRatioMode.KeepAspectRatio,
                         Qt.TransformationMode.SmoothTransformation
                     )
                     kim_img.setPixmap(px)
@@ -431,9 +619,9 @@ class RikishiDossierPanel(QWidget):
                 kim_layout.addWidget(kim_img, alignment=Qt.AlignmentFlag.AlignCenter)
 
                 # Technique name + count
-                kim_text = QLabel(f"{technique}\n({count})")
+                kim_text = QLabel(f"{technique.title()}\n({count})")
                 kim_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                kim_text.setFont(QFont("", 10))
+                kim_text.setFont(QFont("Outfit", 12, QFont.Weight.Bold))
                 kim_layout.addWidget(kim_text)
 
                 style_layout.addWidget(kim_frame)
@@ -448,7 +636,7 @@ class RikishiDossierPanel(QWidget):
         career_layout = QHBoxLayout(career_group)
 
         wins_label = QLabel(f"{w.career_wins}")
-        wins_label.setFont(QFont("", 18, QFont.Weight.Bold))
+        wins_label.setFont(QFont("Outfit", 18, QFont.Weight.Bold))
         wins_label.setStyleSheet("color: #006400;")
         career_layout.addWidget(wins_label)
         career_layout.addWidget(QLabel("W"))
@@ -456,7 +644,7 @@ class RikishiDossierPanel(QWidget):
         career_layout.addWidget(QLabel("  —  "))
 
         losses_label = QLabel(f"{w.career_losses}")
-        losses_label.setFont(QFont("", 18, QFont.Weight.Bold))
+        losses_label.setFont(QFont("Outfit", 18, QFont.Weight.Bold))
         losses_label.setStyleSheet("color: #8B0000;")
         career_layout.addWidget(losses_label)
         career_layout.addWidget(QLabel("L"))
@@ -464,7 +652,7 @@ class RikishiDossierPanel(QWidget):
         if w.career_absences:
             career_layout.addWidget(QLabel("  —  "))
             abs_label = QLabel(f"{w.career_absences}")
-            abs_label.setFont(QFont("", 18, QFont.Weight.Bold))
+            abs_label.setFont(QFont("Outfit", 18, QFont.Weight.Bold))
             abs_label.setStyleSheet("color: #666;")
             career_layout.addWidget(abs_label)
             career_layout.addWidget(QLabel("A"))
@@ -472,8 +660,8 @@ class RikishiDossierPanel(QWidget):
         career_layout.addWidget(self._make_separator())
 
         if w.total_yusho:
-            yusho_label = QLabel(f"🏆 {w.total_yusho} Yusho")
-            yusho_label.setFont(QFont("", 14, QFont.Weight.Bold))
+            yusho_label = QLabel(f"🏆 {w.total_yusho} Makuuchi Yusho")
+            yusho_label.setFont(QFont("Outfit", 14, QFont.Weight.Bold))
             yusho_label.setStyleSheet("color: #B8860B;")
             career_layout.addWidget(yusho_label)
 
@@ -484,6 +672,15 @@ class RikishiDossierPanel(QWidget):
             rate_label = QLabel(f"({rate:.1f}%)")
             rate_label.setStyleSheet("color: #666; font-size: 13px;")
             career_layout.addWidget(rate_label)
+
+        career_layout.addWidget(self._make_separator())
+
+        # Years active
+        years_text = self._get_years_active(w)
+        years_label = QLabel(years_text)
+        years_label.setFont(QFont("Outfit", 18, QFont.Weight.Bold))
+        years_label.setStyleSheet("color: #333;")
+        career_layout.addWidget(years_label)
 
         career_layout.addStretch()
         self._dossier_layout.addWidget(career_group)
@@ -584,45 +781,45 @@ class RikishiDossierPanel(QWidget):
         card.setFrameShape(QFrame.Shape.StyledPanel)
         card.setStyleSheet(
             "QFrame { background-color: #FAFAF5; border: 1px solid #D0C8B0; "
-            "border-radius: 6px; padding: 6px; }"
+            "border-radius: 6px; padding: 8px; }"
         )
-        card.setFixedWidth(120)
+        card.setFixedWidth(180)
+        card.setMinimumHeight(300)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(2)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Basho date + location in same cell
+        # Row 1: Basho date
         month = rec.basho_id.split(".")[1] if "." in rec.basho_id else ""
         location = _BASHO_LOCATIONS.get(month, "")
         date_label = QLabel(f"{rec.basho_id}")
         date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        date_label.setFont(QFont("", 9, QFont.Weight.Bold))
+        date_label.setFont(QFont("Outfit", 13, QFont.Weight.Bold))
         date_label.setStyleSheet("color: #333;")
         layout.addWidget(date_label)
 
-        if location:
-            loc_label = QLabel(location)
-            loc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            loc_label.setFont(QFont("", 7))
-            loc_label.setStyleSheet("color: #999;")
-            layout.addWidget(loc_label)
+        # Row 2: Location
+        loc_label = QLabel(location or "")
+        loc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        loc_label.setFont(QFont("Outfit", 10))
+        loc_label.setStyleSheet("color: #999;")
+        layout.addWidget(loc_label)
 
-        # Rank shorthand
+        # Row 3: Rank shorthand
         rec_rank_val = rec.rank.value if isinstance(rec.rank, Rank) else str(rec.rank)
-        # Try to get side from the record if available
         rec_side = getattr(rec, "side", None)
         rank_short = self._rank_shorthand(rec_rank_val, rec.rank_number, rec_side)
         rank_label = QLabel(rank_short)
         rank_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        rank_label.setFont(QFont("", 9, QFont.Weight.Bold))
+        rank_label.setFont(QFont("Outfit", 14, QFont.Weight.Bold))
         rank_label.setStyleSheet("color: #444;")
         layout.addWidget(rank_label)
 
-        # Rank change indicator
+        # Row 4: Rank change indicator
         arrow_label = QLabel()
         arrow_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        arrow_label.setFont(QFont("", 14))
 
         if prev:
             prev_rank_val = prev.rank.value if isinstance(prev.rank, Rank) else str(prev.rank)
@@ -632,52 +829,73 @@ class RikishiDossierPanel(QWidget):
             prev_key = self._rank_sort_key(prev_rank_val, prev.rank_number, prev_side)
 
             if curr_key < prev_key:
-                # Promoted
                 arrow_label.setText("▲")
-                arrow_label.setStyleSheet("color: #006400; font-size: 16px;")
+                arrow_label.setStyleSheet("color: #006400; font-size: 22px;")
             elif curr_key > prev_key:
-                # Demoted
                 arrow_label.setText("▼")
-                arrow_label.setStyleSheet("color: #8B0000; font-size: 16px;")
+                arrow_label.setStyleSheet("color: #8B0000; font-size: 22px;")
             else:
-                # Same rank — blue dot
                 arrow_label.setText("●")
-                arrow_label.setStyleSheet("color: #4169E1; font-size: 12px;")
+                arrow_label.setStyleSheet("color: #4169E1; font-size: 16px;")
         else:
             arrow_label.setText("")
 
         layout.addWidget(arrow_label)
 
-        # W-L record
-        record_label = QLabel(f"{rec.wins}-{rec.losses}")
-        record_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        record_label.setFont(QFont("", 13, QFont.Weight.Bold))
+        # Row 5: W-L record
+        is_full_kyujo = (rec.wins == 0 and rec.losses == 0 and rec.absences > 0)
 
-        # Color based on comparison with previous
-        if prev:
-            if rec.wins > prev.wins:
-                record_label.setStyleSheet("color: #006400;")
-            elif rec.wins < prev.wins:
-                record_label.setStyleSheet("color: #8B0000;")
+        if is_full_kyujo:
+            record_label = QLabel(f"0-0-{rec.absences}")
+            record_label.setStyleSheet("color: #999;")
+        else:
+            record_label = QLabel(f"{rec.wins}-{rec.losses}")
+            if prev:
+                if rec.wins > prev.wins:
+                    record_label.setStyleSheet("color: #006400;")
+                elif rec.wins < prev.wins:
+                    record_label.setStyleSheet("color: #8B0000;")
+                else:
+                    record_label.setStyleSheet("color: #333;")
             else:
                 record_label.setStyleSheet("color: #333;")
-        else:
-            record_label.setStyleSheet("color: #333;")
 
+        record_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        record_label.setFont(QFont("Outfit", 18, QFont.Weight.Bold))
         layout.addWidget(record_label)
 
-        # Yusho / special prizes
-        extras = []
-        if rec.is_yusho:
-            extras.append("🏆")
-        if rec.is_jun_yusho:
-            extras.append("🥈")
-        if rec.special_prizes:
-            extras.append("⭐")
-        if extras:
-            extra_label = QLabel(" ".join(extras))
-            extra_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(extra_label)
+        # Row 6: Yusho / kyujo / special prizes
+        extra_label = QLabel()
+        extra_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        extra_label.setMinimumHeight(40)
+        extra_label.setFont(QFont("Outfit", 20))
+
+        if is_full_kyujo:
+            extra_label.setText("✕")
+            extra_label.setStyleSheet("color: #8B0000; font-size: 20px; font-weight: bold;")
+        else:
+            extras = []
+            # Determine if this is a makuuchi-level tournament
+            is_makuuchi = rec_rank_val in ("yokozuna", "ozeki", "sekiwake", "komusubi", "maegashira")
+
+            if rec.is_yusho:
+                if is_makuuchi:
+                    extras.append("🏆")  # Emperor's Cup
+                else:
+                    extras.append("✔")  # Lower division championship
+            if rec.is_jun_yusho and is_makuuchi:
+                extras.append("🥈")  # Jun-yusho (makuuchi only)
+            if rec.special_prizes:
+                extras.append("⭐")
+            if extras:
+                text = " ".join(extras)
+                if "✔" in text and "🏆" not in text:
+                    extra_label.setText(text)
+                    extra_label.setStyleSheet("color: #006400; font-size: 22px; font-weight: bold;")
+                else:
+                    extra_label.setText(text)
+
+        layout.addWidget(extra_label)
 
         return card
 
@@ -695,7 +913,7 @@ class RikishiDossierPanel(QWidget):
 
         # Header
         header = QLabel(f"{w.shikona}  ({w.full_rank})  —  {w.career_wins}W-{w.career_losses}L")
-        header.setFont(QFont("", 14, QFont.Weight.Bold))
+        header.setFont(QFont("Outfit", 14, QFont.Weight.Bold))
         layout.addWidget(header)
 
         # Table
@@ -747,7 +965,7 @@ class RikishiDossierPanel(QWidget):
             result_item = QTableWidgetItem("WIN" if won else "LOSS")
             result_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             result_item.setForeground(QColor("#006400" if won else "#8B0000"))
-            result_item.setFont(QFont("", -1, QFont.Weight.Bold))
+            result_item.setFont(QFont("Outfit", -1, QFont.Weight.Bold))
             table.setItem(row, 5, result_item)
 
             table.setItem(row, 6, QTableWidgetItem(bout.kimarite or ""))
@@ -770,7 +988,262 @@ class RikishiDossierPanel(QWidget):
 
         dlg.exec()
 
+    # ── Add family relation dialog ───────────────────────────────
+
+    def _on_add_family(self, wrestler: WrestlerProfile) -> None:
+        """Open a dialog to add a family relation."""
+        if not self._db:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Add Family Relation — {wrestler.shikona}")
+        dlg.setMinimumWidth(400)
+        layout = QVBoxLayout(dlg)
+
+        # Wrestler selector
+        layout.addWidget(QLabel("Related wrestler:"))
+        search_box = QLineEdit()
+        search_box.setPlaceholderText("Search by name...")
+        layout.addWidget(search_box)
+
+        wrestler_list = QListWidget()
+        wrestler_list.setMaximumHeight(200)
+        layout.addWidget(wrestler_list)
+
+        # Populate with all wrestlers
+        all_w = self._db.get_all_wrestlers(active_only=False)
+        for w in all_w:
+            if w.wrestler_id == wrestler.wrestler_id:
+                continue
+            item = QListWidgetItem(f"{w.shikona} ({w.wrestler_id})")
+            item.setData(Qt.ItemDataRole.UserRole, w.wrestler_id)
+            wrestler_list.addItem(item)
+
+        def filter_list(text):
+            text_lower = text.lower()
+            for i in range(wrestler_list.count()):
+                item = wrestler_list.item(i)
+                item.setHidden(text_lower not in item.text().lower())
+
+        search_box.textChanged.connect(filter_list)
+
+        # Relationship type
+        layout.addWidget(QLabel("Relationship:"))
+        rel_combo = QComboBox()
+        for rel in ["brother", "father", "son", "uncle", "nephew",
+                     "grandfather", "grandson", "cousin"]:
+            rel_combo.addItem(rel.title(), rel)
+        layout.addWidget(rel_combo)
+
+        # Buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            selected = wrestler_list.currentItem()
+            if selected:
+                related_id = selected.data(Qt.ItemDataRole.UserRole)
+                relationship = rel_combo.currentData()
+                self._db.add_family_relation(
+                    wrestler.wrestler_id, related_id, relationship
+                )
+                # Refresh the dossier to show the new relation
+                self._display_dossier(wrestler)
+
+    # ── API data fetching ─────────────────────────────────────────
+
+    @staticmethod
+    def _fetch_shikona_history(api_id: int) -> list[dict]:
+        """Fetch shikona change history from sumo-api.com."""
+        try:
+            import httpx
+            resp = httpx.get(
+                f"https://www.sumo-api.com/api/shikonas?rikishiId={api_id}",
+                timeout=10.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list):
+                    # Sort chronologically (oldest first)
+                    return sorted(data, key=lambda x: x.get("bashoId", ""))
+        except Exception:
+            pass
+        return []
+
+    @staticmethod
+    def _build_rank_chart(records: list) -> QWidget:
+        """Build a rank progression chart using QPainter.
+
+        Y-axis: rank tier (Yokozuna at top, lower divisions at bottom)
+        X-axis: basho timeline
+        """
+        from data.models import Rank
+
+        # Sort chronologically
+        sorted_recs = sorted(records, key=lambda r: r.basho_id)
+
+        # Build data points: (basho_index, rank_value)
+        # Rank value: lower number = higher rank
+        rank_tiers = {
+            "yokozuna": 1, "ozeki": 2, "sekiwake": 3, "komusubi": 4,
+            "maegashira": 5, "juryo": 6, "makushita": 7, "sandanme": 8,
+            "jonidan": 9, "jonokuchi": 10,
+        }
+
+        points = []
+        basho_labels = []
+        for i, rec in enumerate(sorted_recs):
+            rank_val = rec.rank.value if isinstance(rec.rank, Rank) else str(rec.rank)
+            rank_lower = rank_val.lower().split()[0]
+            tier = rank_tiers.get(rank_lower, 10)
+            # Sub-rank: add fraction for rank number within tier
+            num = rec.rank_number or 1
+            y = tier + (num - 1) * 0.05  # Small offset for rank number
+            points.append((i, y))
+            basho_labels.append(rec.basho_id)
+
+        if len(points) < 2:
+            label = QLabel("Insufficient data")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            return label
+
+        # Chart dimensions
+        chart_w, chart_h = 300, 180
+        margin_l, margin_r, margin_t, margin_b = 30, 15, 10, 30
+
+        pixmap = QPixmap(chart_w, chart_h)
+        pixmap.fill(QColor("#FAFAF5"))
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        plot_x = margin_l
+        plot_y = margin_t
+        plot_w = chart_w - margin_l - margin_r
+        plot_h = chart_h - margin_t - margin_b
+
+        # Y range: find min/max tiers present, add padding
+        y_vals = [p[1] for p in points]
+        y_min = max(0.5, min(y_vals) - 0.5)
+        y_max = min(10.5, max(y_vals) + 0.5)
+
+        x_min = 0
+        x_max = max(1, len(points) - 1)
+
+        def to_px(x_idx, y_val):
+            px_x = plot_x + (x_idx / x_max) * plot_w if x_max > 0 else plot_x
+            # Invert Y: lower tier number = higher on chart
+            px_y = plot_y + ((y_val - y_min) / (y_max - y_min)) * plot_h
+            return int(px_x), int(px_y)
+
+        # Draw axes
+        painter.setPen(QPen(QColor("#999"), 1))
+        painter.drawLine(plot_x, plot_y, plot_x, plot_y + plot_h)
+        painter.drawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h)
+
+        # Y-axis labels (rank abbreviations)
+        rank_labels = {1: "Y", 2: "O", 3: "S", 4: "K", 5: "M", 6: "J", 7: "Ms"}
+        painter.setFont(QFont("Outfit", 7))
+        painter.setPen(QColor("#666"))
+        for tier, label in rank_labels.items():
+            if y_min <= tier <= y_max:
+                _, py = to_px(0, tier)
+                painter.drawText(4, py + 4, label)
+                # Gridline
+                painter.setPen(QPen(QColor("#E8E8E8"), 1))
+                painter.drawLine(plot_x + 1, py, plot_x + plot_w, py)
+                painter.setPen(QColor("#666"))
+
+        # Makuuchi/Juryo division line
+        if y_min <= 5.5 <= y_max:
+            _, div_y = to_px(0, 5.5)
+            painter.setPen(QPen(QColor("#CC0000"), 1, Qt.PenStyle.DashLine))
+            painter.drawLine(plot_x, div_y, plot_x + plot_w, div_y)
+
+        # X-axis labels (years from basho IDs)
+        painter.setPen(QColor("#666"))
+        painter.setFont(QFont("Outfit", 7))
+        shown_years = set()
+        for i, basho_id in enumerate(basho_labels):
+            year = basho_id[:4] if len(basho_id) >= 4 else ""
+            if year and year not in shown_years:
+                px_x, _ = to_px(i, y_max)
+                painter.drawText(px_x - 12, plot_y + plot_h + 14, year)
+                shown_years.add(year)
+
+        # Draw line
+        painter.setPen(QPen(QColor("#8B0000"), 2))
+        prev = None
+        for x_idx, y_val in points:
+            cx, cy = to_px(x_idx, y_val)
+            if prev:
+                painter.drawLine(prev[0], prev[1], cx, cy)
+            prev = (cx, cy)
+
+        # Draw dots
+        painter.setPen(QPen(QColor("#8B0000"), 1))
+        painter.setBrush(QBrush(QColor("#B22222")))
+        for x_idx, y_val in points:
+            cx, cy = to_px(x_idx, y_val)
+            painter.drawEllipse(cx - 2, cy - 2, 4, 4)
+
+        painter.end()
+
+        label = QLabel()
+        label.setPixmap(pixmap)
+        return label
+
     # ── Helpers ─────────────────────────────────────────────────────
+
+    def _get_years_active(self, w: WrestlerProfile) -> str:
+        """Get years active string like '2017 – Present' or '2001 – 2021'."""
+        start_year = None
+        end_year = None
+
+        # Try debut_basho first (e.g. "201711" or "2017.11")
+        if w.debut_basho:
+            try:
+                start_year = int(str(w.debut_basho).replace(".", "")[:4])
+            except (ValueError, IndexError):
+                pass
+
+        if self._db:
+            # Check tournament records for start/end
+            recs = self._db.get_tournament_records(w.wrestler_id, limit=100)
+            if recs:
+                basho_ids = sorted(r.basho_id for r in recs)
+                try:
+                    if not start_year:
+                        start_year = int(basho_ids[0][:4])
+                    end_year = int(basho_ids[-1][:4])
+                except (ValueError, IndexError):
+                    pass
+
+            # Fall back to bout records if no tournament records
+            if not end_year or not start_year:
+                bouts = self._db.get_career_bouts(w.wrestler_id)
+                if bouts:
+                    basho_ids = sorted(set(b.basho_id for b in bouts))
+                    try:
+                        if not start_year:
+                            start_year = int(basho_ids[0][:4])
+                        end_year = int(basho_ids[-1][:4])
+                    except (ValueError, IndexError):
+                        pass
+
+        if not start_year:
+            return ""
+
+        if w.is_active:
+            return f"{start_year} – Present"
+        elif end_year:
+            return f"{start_year} – {end_year}"
+        else:
+            return f"{start_year} –"
 
     @staticmethod
     def _make_separator() -> QFrame:
@@ -788,3 +1261,95 @@ class RikishiDossierPanel(QWidget):
                 child.widget().deleteLater()
             elif child.layout():
                 RikishiDossierPanel._clear_layout(child.layout())
+
+    # ── Modifier sync with ModifierPanel ───────────────────────────
+
+    def _get_modifier_panel(self):
+        """Get the modifier panel from the main window."""
+        mw = self._main_window
+        if mw and hasattr(mw, "_modifier_panel"):
+            return mw._modifier_panel
+        return None
+
+    def _load_current_modifiers(self, wrestler_id: str, mom_combo, inj_spin):
+        """Load current modifier values from the database, then sync with modifier panel."""
+        # First try database for persisted overrides
+        if self._db:
+            overrides = self._db.get_modifier_overrides()
+            if wrestler_id in overrides:
+                ov = overrides[wrestler_id]
+                # Momentum
+                mom_val = ov.get("momentum")
+                if mom_val:
+                    from data.models import MomentumState
+                    try:
+                        ms = MomentumState(mom_val)
+                        idx = mom_combo.findData(ms)
+                        if idx >= 0:
+                            mom_combo.setCurrentIndex(idx)
+                    except ValueError:
+                        pass
+                # Injury
+                inj_val = ov.get("injury_severity", 0.0)
+                if inj_val:
+                    inj_spin.setValue(inj_val)
+                return
+
+        # Fall back to reading from modifier panel widgets
+        panel = self._get_modifier_panel()
+        if not panel or not hasattr(panel, "_override_table"):
+            return
+
+        table = panel._override_table
+        for row in range(table.rowCount()):
+            item = table.item(row, 0)
+            if item and item.data(Qt.ItemDataRole.UserRole) == wrestler_id:
+                mom_widget = table.cellWidget(row, 2)
+                if mom_widget:
+                    mom_combo.setCurrentIndex(mom_widget.currentIndex())
+                inj_widget = table.cellWidget(row, 3)
+                if inj_widget:
+                    inj_spin.setValue(inj_widget.value())
+                break
+
+    def _on_dossier_modifier_changed(self, wrestler_id: str, field: str, value):
+        """Sync a modifier change to the modifier panel and save to database."""
+        # Sync to modifier panel widgets
+        panel = self._get_modifier_panel()
+        if panel and hasattr(panel, "_override_table"):
+            table = panel._override_table
+            for row in range(table.rowCount()):
+                item = table.item(row, 0)
+                if item and item.data(Qt.ItemDataRole.UserRole) == wrestler_id:
+                    if field == "momentum":
+                        mom_widget = table.cellWidget(row, 2)
+                        if mom_widget:
+                            if value is None:
+                                mom_widget.setCurrentIndex(0)
+                            else:
+                                idx = mom_widget.findData(value)
+                                if idx >= 0:
+                                    mom_widget.setCurrentIndex(idx)
+                    elif field == "injury":
+                        inj_widget = table.cellWidget(row, 3)
+                        if inj_widget:
+                            inj_widget.setValue(value)
+                    break
+
+        # Save to database
+        if self._db:
+            # Read current values to do a full save
+            overrides = self._db.get_modifier_overrides()
+            current = overrides.get(wrestler_id, {"momentum": None, "injury_severity": 0.0})
+
+            if field == "momentum":
+                mom_str = value.value if value else None
+                current["momentum"] = mom_str
+            elif field == "injury":
+                current["injury_severity"] = value
+
+            self._db.save_modifier_override(
+                wrestler_id,
+                current.get("momentum"),
+                current.get("injury_severity", 0.0),
+            )

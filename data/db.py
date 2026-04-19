@@ -53,6 +53,21 @@ def _row_get(row, key, default=None):
         return default
 
 
+def _parse_date(val: str | None) -> date | None:
+    """Parse a date string safely, handling multiple ISO formats.
+
+    Handles: '1999-05-22', '1999-05-22T00:00:00Z', '1999-05-22T00:00:00+00:00'
+    Returns None if parsing fails or val is empty/None.
+    """
+    if not val:
+        return None
+    try:
+        # Strip time component if present: take only the date part
+        return date.fromisoformat(val[:10])
+    except (ValueError, TypeError):
+        return None
+
+
 class SumoDatabase:
     """
     Unified data access layer.
@@ -218,6 +233,8 @@ class SumoDatabase:
                 west_id         TEXT NOT NULL,
                 winner_id       TEXT NOT NULL,
                 kimarite        TEXT,
+                east_rank       TEXT,
+                west_rank       TEXT,
                 PRIMARY KEY (basho_id, day, east_id, west_id)
             );
 
@@ -669,7 +686,7 @@ class SumoDatabase:
                 wrestler_id=r["wrestler_id"],
                 shikona=r["shikona"],
                 heya=r["heya"],
-                birth_date=date.fromisoformat(r["birth_date"]) if r["birth_date"] else None,
+                birth_date=_parse_date(r["birth_date"]),
                 height_cm=r["height_cm"],
                 weight_kg=r["weight_kg"],
                 fighting_style=FightingStyle(r["fighting_style"]),
@@ -843,71 +860,249 @@ class SumoDatabase:
     # ================================================================
 
     def get_all_wrestlers(self, active_only: bool = True) -> list[WrestlerProfile]:
-        """Get all wrestlers, optionally filtered to active only.
+        """Get wrestlers for the Rikishi Dossier panel.
 
-        Active filter excludes stub records (those with no heya or career data).
-        Rank uses COALESCE of current_rank and highest_rank.
+        Two modes:
+          active_only=True  → Current Makuuchi + Juryo sekitori, ordered by rank
+                              (Y1E first → J14W last).
+          active_only=False → All wrestlers with meaningful data, ordered by
+                              total_yusho descending then career_wins descending.
+
+        Data source strategy:
+          - Makuuchi wrestlers come from the banzuke table (authoritative rank).
+          - Juryo wrestlers come from the wrestlers table rank_label/rank_value
+            columns (populated by scrape_rikishi.py but not in the banzuke table).
+          - Stub records (~2000 empty rows from bout history scraping) are
+            excluded by requiring rank_value to be set OR a banzuke entry.
         """
         conn = self._local_conn()
+
+        # ── Detect which columns exist on the wrestlers table ─────────
+        col_info = conn.execute("PRAGMA table_info(wrestlers)").fetchall()
+        live_cols = {row[1] for row in col_info}
+        has_rank_value = "rank_value" in live_cols
+        has_rank_label = "rank_label" in live_cols
+
+        # ── Find the most recent basho in the banzuke table ──────────
+        latest_row = conn.execute(
+            "SELECT MAX(basho_id) AS latest FROM banzuke"
+        ).fetchone()
+        latest_basho = latest_row["latest"] if latest_row else None
+
         if active_only:
-            rows = conn.execute(
-                """SELECT * FROM wrestlers
-                   WHERE is_active = 1
-                     AND (career_wins > 0 OR height_cm IS NOT NULL)
-                   ORDER BY
-                       CASE COALESCE(current_rank, highest_rank, 'maegashira')
-                           WHEN 'yokozuna' THEN 1
-                           WHEN 'ozeki' THEN 2
-                           WHEN 'sekiwake' THEN 3
-                           WHEN 'komusubi' THEN 4
-                           WHEN 'maegashira' THEN 5
-                           WHEN 'juryo' THEN 6
-                           ELSE 7
-                       END,
-                       current_rank_number,
-                       career_wins DESC"""
-            ).fetchall()
+            seen_ids = set()
+            rows = []
+
+            # ── Part 1: Makuuchi from banzuke (authoritative) ─────────
+            if latest_basho:
+                banzuke_rows = conn.execute(
+                    """SELECT w.*,
+                              b.rank      AS banzuke_rank,
+                              b.rank_number AS banzuke_rank_number,
+                              b.side      AS banzuke_side,
+                              b.division  AS banzuke_division
+                       FROM wrestlers w
+                       JOIN banzuke b ON w.wrestler_id = b.wrestler_id
+                       WHERE b.basho_id = ?
+                       ORDER BY
+                           CASE lower(b.rank)
+                               WHEN 'yokozuna'  THEN 1
+                               WHEN 'ozeki'     THEN 2
+                               WHEN 'sekiwake'  THEN 3
+                               WHEN 'komusubi'  THEN 4
+                               WHEN 'maegashira' THEN 5
+                               WHEN 'juryo'     THEN 6
+                               ELSE 7
+                           END,
+                           b.rank_number,
+                           CASE lower(COALESCE(b.side, ''))
+                               WHEN 'east' THEN 0
+                               ELSE 1
+                           END""",
+                    (latest_basho,),
+                ).fetchall()
+                for r in banzuke_rows:
+                    seen_ids.add(r["wrestler_id"])
+                rows.extend(banzuke_rows)
+
+            # ── Part 2: Juryo (and any other sekitori not in banzuke) ─
+            # These were written by scrape_rikishi.py with rank_value set
+            if has_rank_value:
+                # Juryo rank_value range: 200-227 per scrape_rikishi.py
+                # But also catch any Makuuchi wrestlers missed by banzuke
+                juryo_rows = conn.execute(
+                    """SELECT *, NULL AS banzuke_rank, NULL AS banzuke_rank_number,
+                              NULL AS banzuke_side, NULL AS banzuke_division
+                       FROM wrestlers
+                       WHERE is_active = 1
+                         AND rank_value IS NOT NULL
+                         AND wrestler_id NOT IN (
+                             SELECT wrestler_id FROM banzuke
+                             WHERE basho_id = ?
+                         )
+                       ORDER BY rank_value, shikona""",
+                    (latest_basho or "",),
+                ).fetchall()
+                for r in juryo_rows:
+                    if r["wrestler_id"] not in seen_ids:
+                        seen_ids.add(r["wrestler_id"])
+                        rows.append(r)
         else:
-            rows = conn.execute(
-                """SELECT * FROM wrestlers
-                   WHERE (career_wins > 0 OR height_cm IS NOT NULL)
-                   ORDER BY
-                       is_active DESC,
-                       CASE COALESCE(highest_rank, current_rank, 'maegashira')
-                           WHEN 'yokozuna' THEN 1
-                           WHEN 'ozeki' THEN 2
-                           WHEN 'sekiwake' THEN 3
-                           WHEN 'komusubi' THEN 4
-                           WHEN 'maegashira' THEN 5
-                           WHEN 'juryo' THEN 6
-                           ELSE 7
-                       END,
-                       total_yusho DESC,
-                       career_wins DESC"""
-            ).fetchall()
+            # ── All mode: every wrestler with meaningful data ─────────
+            # Exclude stubs: require either rank_value set, career_wins > 0,
+            # or a banzuke entry
+            if has_rank_value:
+                rows = conn.execute(
+                    """SELECT *, NULL AS banzuke_rank, NULL AS banzuke_rank_number,
+                              NULL AS banzuke_side, NULL AS banzuke_division
+                       FROM wrestlers
+                       WHERE rank_value IS NOT NULL
+                          OR career_wins > 10
+                          OR total_yusho > 0
+                          OR highest_rank IN ('yokozuna', 'ozeki')
+                       ORDER BY
+                           COALESCE(total_yusho, 0) DESC,
+                           COALESCE(career_wins, 0) DESC,
+                           shikona"""
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT *, NULL AS banzuke_rank, NULL AS banzuke_rank_number,
+                              NULL AS banzuke_side, NULL AS banzuke_division
+                       FROM wrestlers
+                       WHERE career_wins > 10
+                          OR total_yusho > 0
+                          OR highest_rank IN ('yokozuna', 'ozeki')
+                       ORDER BY
+                           COALESCE(total_yusho, 0) DESC,
+                           COALESCE(career_wins, 0) DESC,
+                           shikona"""
+                ).fetchall()
         conn.close()
+
+        # ── Pre-compute bout stats for wrestlers missing career totals ─
+        # This avoids per-wrestler queries inside the loop.
+        _bout_stats_cache: dict[str, tuple[int, int]] = {}  # {wid: (wins, losses)}
+        wids_needing_stats = []
+        for r in rows:
+            cw = _row_get(r, "career_wins", 0) or 0
+            cl = _row_get(r, "career_losses", 0) or 0
+            # If aggregate career columns are empty, we need bout_records
+            if cw == 0 or cl == 0:
+                wids_needing_stats.append(r["wrestler_id"])
+
+        if wids_needing_stats:
+            conn2 = self._local_conn()
+            try:
+                # Wins: count where wrestler is winner
+                placeholders = ",".join("?" * len(wids_needing_stats))
+                win_rows = conn2.execute(
+                    f"""SELECT winner_id, COUNT(*) as cnt
+                        FROM bout_records
+                        WHERE winner_id IN ({placeholders})
+                        GROUP BY winner_id""",
+                    wids_needing_stats,
+                ).fetchall()
+                for wr in win_rows:
+                    _bout_stats_cache[wr["winner_id"]] = (wr["cnt"], 0)
+
+                # Losses: count total bouts per wrestler, then subtract wins
+                # Total bouts as east
+                east_rows = conn2.execute(
+                    f"""SELECT east_id, COUNT(*) as cnt
+                        FROM bout_records
+                        WHERE east_id IN ({placeholders})
+                        GROUP BY east_id""",
+                    wids_needing_stats,
+                ).fetchall()
+                total_bouts: dict[str, int] = {}
+                for er in east_rows:
+                    total_bouts[er["east_id"]] = er["cnt"]
+
+                # Total bouts as west
+                west_rows = conn2.execute(
+                    f"""SELECT west_id, COUNT(*) as cnt
+                        FROM bout_records
+                        WHERE west_id IN ({placeholders})
+                        GROUP BY west_id""",
+                    wids_needing_stats,
+                ).fetchall()
+                for wr2 in west_rows:
+                    total_bouts[wr2["west_id"]] = total_bouts.get(wr2["west_id"], 0) + wr2["cnt"]
+
+                # Losses = total bouts - wins
+                for wid in wids_needing_stats:
+                    wins = _bout_stats_cache.get(wid, (0, 0))[0]
+                    total = total_bouts.get(wid, 0)
+                    losses = total - wins
+                    _bout_stats_cache[wid] = (wins, losses)
+            except Exception as e:
+                logger.debug(f"Bout stats pre-computation failed: {e}")
+            finally:
+                conn2.close()
 
         result = []
         for r in rows:
             try:
-                # Parse rank — could be "yokozuna", "Yokozuna 1 East", etc.
-                rank_str = r["current_rank"] or _row_get(r, "highest_rank") or "maegashira"
-                rank_lower = rank_str.lower().split()[0]  # Take first word
+                # ── Determine rank ────────────────────────────────────
+                # Priority: banzuke JOIN > rank_label column > current_rank
+                banzuke_rank = _row_get(r, "banzuke_rank")
+                rank_label_col = _row_get(r, "rank_label", "") if has_rank_label else ""
+
+                if banzuke_rank:
+                    rank_str = banzuke_rank.lower().split()[0]
+                elif rank_label_col:
+                    rank_str = rank_label_col.lower().split()[0]
+                else:
+                    rank_str = (
+                        _row_get(r, "current_rank")
+                        or _row_get(r, "highest_rank")
+                        or "maegashira"
+                    )
+                    rank_str = rank_str.lower().split()[0]
+
                 valid_ranks = {e.value: e for e in Rank}
-                rank = valid_ranks.get(rank_lower, Rank.MAEGASHIRA)
+                rank = valid_ranks.get(rank_str, Rank.MAEGASHIRA)
+
+                # ── Rank number ───────────────────────────────────────
+                rank_number = _row_get(r, "banzuke_rank_number")
+                if not rank_number and rank_label_col:
+                    parts = rank_label_col.split()
+                    if len(parts) >= 2 and parts[1].isdigit():
+                        rank_number = int(parts[1])
+                if not rank_number:
+                    rank_number = (
+                        _row_get(r, "current_rank_number")
+                        or _row_get(r, "highest_rank_number")
+                    )
+                # Clamp to valid range for the model (1-18)
+                if rank_number is not None:
+                    rank_number = max(1, min(18, int(rank_number)))
+
+                # ── Side ──────────────────────────────────────────────
+                side = (_row_get(r, "banzuke_side") or "").lower() or None
+                if not side and rank_label_col:
+                    if rank_label_col.endswith("East"):
+                        side = "east"
+                    elif rank_label_col.endswith("West"):
+                        side = "west"
+                if not side:
+                    side = (_row_get(r, "current_side") or "").lower() or None
+                if side and side not in ("east", "west"):
+                    side = None
 
                 result.append(WrestlerProfile(
                     wrestler_id=r["wrestler_id"],
                     shikona=r["shikona"],
                     heya=r["heya"] or "",
-                    birth_date=date.fromisoformat(r["birth_date"]) if r["birth_date"] else None,
-                    height_cm=r["height_cm"],
-                    weight_kg=r["weight_kg"],
+                    birth_date=_parse_date(r["birth_date"]),
+                    height_cm=_row_get(r, "height_cm"),
+                    weight_kg=_row_get(r, "weight_kg"),
                     fighting_style=FightingStyle(r["fighting_style"]) if r["fighting_style"] in [e.value for e in FightingStyle] else FightingStyle.HYBRID,
                     rank=rank,
-                    rank_number=r["current_rank_number"] or _row_get(r, "highest_rank_number"),
-                    side=(_row_get(r, "current_side") or "").lower() or None,
-                    country=r["country"] or "Japan",
+                    rank_number=rank_number,
+                    side=side,
+                    country=_row_get(r, "country") or "Japan",
                     shikona_jp=_row_get(r, "shikona_jp"),
                     shikona_full=_row_get(r, "shikona_full"),
                     prefecture=_row_get(r, "prefecture"),
@@ -916,15 +1111,54 @@ class SumoDatabase:
                     highest_rank_number=_row_get(r, "highest_rank_number"),
                     is_active=bool(_row_get(r, "is_active", 1)),
                     debut_basho=_row_get(r, "debut_basho"),
-                    career_wins=_row_get(r, "career_wins", 0) or 0,
-                    career_losses=_row_get(r, "career_losses", 0) or 0,
-                    career_absences=_row_get(r, "career_absences", 0) or 0,
-                    total_yusho=_row_get(r, "total_yusho", 0) or 0,
+                    career_wins=self._career_stat(r, "wins", _bout_stats_cache),
+                    career_losses=self._career_stat(r, "losses", _bout_stats_cache),
+                    career_absences=self._career_stat(r, "absences", _bout_stats_cache),
+                    total_yusho=self._career_yusho(r),
                 ))
             except Exception as e:
-                logger.debug(f"Skipped wrestler {r.get('shikona', '?')}: {e}")
+                logger.debug(f"Skipped wrestler {_row_get(r, 'shikona', '?')}: {e}")
                 continue
         return result
+
+    def _career_stat(self, row, stat_type: str, bout_cache: dict = None) -> int:
+        """Get career total for a stat, falling back to division columns or bout_records cache.
+
+        Priority:
+          1. career_wins/career_losses/career_absences (legacy aggregate columns)
+          2. Pre-computed count from bout_records (authoritative, all divisions)
+          3. Sum of makuuchi_ + juryo_ columns (scrape_rikishi partial data)
+        """
+        aggregate = _row_get(row, f"career_{stat_type}", 0) or 0
+        if aggregate > 0:
+            return aggregate
+
+        # Prefer bout_records cache — covers ALL divisions
+        if bout_cache and stat_type in ("wins", "losses"):
+            wid = row["wrestler_id"]
+            cached = bout_cache.get(wid)
+            if cached:
+                val = cached[0] if stat_type == "wins" else cached[1]
+                if val > 0:
+                    return val
+
+        # Fall back to summing division-specific columns
+        maku = _row_get(row, f"makuuchi_{stat_type}", 0) or 0
+        juryo = _row_get(row, f"juryo_{stat_type}", 0) or 0
+        div_total = maku + juryo
+        if div_total > 0:
+            return div_total
+
+        return 0
+
+    @staticmethod
+    def _career_yusho(row) -> int:
+        """Get Makuuchi yusho count only."""
+        total = _row_get(row, "total_yusho", 0) or 0
+        if total > 0:
+            return total
+        # Only count Makuuchi yusho — not Juryo or lower divisions
+        return _row_get(row, "yusho_makuuchi", 0) or 0
 
     def get_top_kimarite(self, wrestler_id: str, n: int = 3) -> list[tuple[str, int]]:
         """Get top N kimarite for a wrestler from bout records.
@@ -975,6 +1209,41 @@ class SumoDatabase:
             for r in rows
         ]
 
+    def get_career_bouts_detailed(
+        self, wrestler_id: str
+    ) -> list[dict]:
+        """Get all career bouts with rank data for the career record dialog.
+
+        Returns list of dicts with keys: basho_id, day, east_id, west_id,
+        winner_id, kimarite, east_rank, west_rank, division.
+        """
+        conn = self._local_conn()
+        rows = conn.execute(
+            """SELECT basho_id, day, east_id, west_id, winner_id,
+                      kimarite, division,
+                      east_rank, west_rank
+               FROM bout_records
+               WHERE east_id = ? OR west_id = ?
+               ORDER BY basho_id, day""",
+            (wrestler_id, wrestler_id),
+        ).fetchall()
+        conn.close()
+
+        return [
+            {
+                "basho_id":   r["basho_id"],
+                "day":        r["day"],
+                "east_id":    r["east_id"],
+                "west_id":    r["west_id"],
+                "winner_id":  r["winner_id"],
+                "kimarite":   r["kimarite"],
+                "east_rank":  _row_get(r, "east_rank", ""),
+                "west_rank":  _row_get(r, "west_rank", ""),
+                "division":   _row_get(r, "division", ""),
+            }
+            for r in rows
+        ]
+
     def get_wrestler_name(self, wrestler_id: str) -> str:
         """Quick lookup of shikona by wrestler_id."""
         conn = self._local_conn()
@@ -984,6 +1253,105 @@ class SumoDatabase:
         ).fetchone()
         conn.close()
         return row["shikona"] if row else f"#{wrestler_id}"
+
+    def get_wrestler_info_bulk(self, wrestler_ids: list[str]) -> dict[str, dict]:
+        """Bulk lookup of wrestler info for opponent display.
+
+        Returns: {wrestler_id: {name, heya, rank, style}}
+        The rank here is the current/highest rank — use get_historical_ranks
+        for basho-specific ranks.
+        """
+        if not wrestler_ids:
+            return {}
+        conn = self._local_conn()
+        placeholders = ",".join("?" * len(wrestler_ids))
+        rows = conn.execute(
+            f"""SELECT wrestler_id,
+                       COALESCE(shikona_en, shikona) AS name,
+                       heya,
+                       COALESCE(rank_label, current_rank, highest_rank, '') AS rank,
+                       fighting_style
+                FROM wrestlers
+                WHERE wrestler_id IN ({placeholders})""",
+            wrestler_ids,
+        ).fetchall()
+        conn.close()
+        return {
+            r["wrestler_id"]: {
+                "name": r["name"] or f"#{r['wrestler_id']}",
+                "heya": r["heya"] or "",
+                "rank": r["rank"] or "",
+                "style": (r["fighting_style"] or "").title(),
+            }
+            for r in rows
+        }
+
+    def get_historical_ranks(
+        self, basho_wrestler_pairs: list[tuple[str, str]]
+    ) -> dict[tuple[str, str], str]:
+        """Look up the rank each wrestler held at a specific basho.
+
+        Args:
+            basho_wrestler_pairs: list of (basho_id, wrestler_id) tuples
+
+        Returns:
+            {(basho_id, wrestler_id): "Maegashira 5 East"} or similar.
+            Falls back through basho_entries → banzuke → tournament_records.
+        """
+        if not basho_wrestler_pairs:
+            return {}
+
+        result: dict[tuple[str, str], str] = {}
+        conn = self._local_conn()
+
+        # Build a temp table or use batched queries
+        # For efficiency, batch into one query per source table
+        unique_pairs = list(set(basho_wrestler_pairs))
+
+        # Try basho_entries first (new table from scrape_full)
+        for basho_id, wid in unique_pairs:
+            row = conn.execute(
+                """SELECT rank, rank_number, side, division
+                   FROM basho_entries
+                   WHERE basho_id = ? AND wrestler_id = ?""",
+                (basho_id, wid),
+            ).fetchone()
+            if row and row["rank"]:
+                rank = row["rank"].capitalize()
+                num = f" {row['rank_number']}" if row["rank_number"] else ""
+                side = f" {row['side'].capitalize()}" if row["side"] else ""
+                result[(basho_id, wid)] = f"{rank}{num}{side}"
+                continue
+
+            # Fall back to banzuke table
+            row = conn.execute(
+                """SELECT rank, rank_number, side
+                   FROM banzuke
+                   WHERE basho_id = ? AND wrestler_id = ?""",
+                (basho_id, wid),
+            ).fetchone()
+            if row and row["rank"]:
+                rank = row["rank"].capitalize()
+                num = f" {row['rank_number']}" if row["rank_number"] else ""
+                side = f" {row['side'].capitalize()}" if row["side"] else ""
+                result[(basho_id, wid)] = f"{rank}{num}{side}"
+                continue
+
+            # Fall back to tournament_records
+            row = conn.execute(
+                """SELECT rank, rank_number, side
+                   FROM tournament_records
+                   WHERE basho_id = ? AND wrestler_id = ?""",
+                (basho_id, wid),
+            ).fetchone()
+            if row and row["rank"]:
+                rank = row["rank"].capitalize()
+                num = f" {row['rank_number']}" if row["rank_number"] else ""
+                side = f" {_row_get(row, 'side', '').capitalize()}" if _row_get(row, "side") else ""
+                result[(basho_id, wid)] = f"{rank}{num}{side}"
+
+        conn.close()
+        return result
 
     # ── Family relations ───────────────────────────────────────────
 
