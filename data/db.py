@@ -287,8 +287,7 @@ class SumoDatabase:
 
         results = {}
         results["wrestlers"] = self._sync_table_wrestlers()
-        results["banzuke"] = self._sync_table_banzuke()
-        results["tournament_records"] = self._sync_table_tournament_records()
+        results["basho_entries"] = self._sync_table_basho_entries()
         results["bout_records"] = self._sync_table_bout_records()
         results["injury_notes"] = self._sync_table_injury_notes()
         results["family_relations"] = self._sync_table_family_relations()
@@ -349,37 +348,13 @@ class SumoDatabase:
         conn.close()
         return len(all_rows)
 
-    def _sync_table_banzuke(self) -> int:
-        resp = self._http.get("/banzuke", params={"select": "*"})
-        resp.raise_for_status()
-        rows = resp.json()
-        conn = self._local_conn()
-        for r in rows:
-            conn.execute(
-                """INSERT OR REPLACE INTO banzuke
-                   (basho_id, wrestler_id, rank, rank_number, side,
-                    division, is_kyujo, kyujo_reason)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (r["basho_id"], r["wrestler_id"], r["rank"],
-                 r.get("rank_number"), r.get("side"),
-                 r.get("division", "makuuchi"),
-                 1 if r.get("is_kyujo") else 0, r.get("kyujo_reason")),
-            )
-        conn.execute(
-            "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
-            ("banzuke", datetime.now(timezone.utc).isoformat(), len(rows)),
-        )
-        conn.commit()
-        conn.close()
-        return len(rows)
-
-    def _sync_table_tournament_records(self) -> int:
-        # Paginate — may exceed 1000 rows with multi-division data
+    def _sync_table_basho_entries(self) -> int:
+        """Sync basho_entries from Supabase to local SQLite (paginated)."""
         all_rows = []
         page_size = 1000
         offset = 0
         while True:
-            resp = self._http.get("/tournament_records", params={
+            resp = self._http.get("/basho_entries", params={
                 "select": "*",
                 "offset": str(offset),
                 "limit": str(page_size),
@@ -394,21 +369,37 @@ class SumoDatabase:
         conn = self._local_conn()
         for r in all_rows:
             conn.execute(
-                """INSERT OR REPLACE INTO tournament_records
-                   (basho_id, wrestler_id, rank, rank_number, side, wins, losses,
-                    absences, is_yusho, is_jun_yusho, special_prizes)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (r["basho_id"], r["wrestler_id"], r["rank"],
-                 r.get("rank_number"), r.get("side"),
-                 r["wins"], r["losses"],
+                """INSERT OR REPLACE INTO basho_entries
+                   (basho_id, wrestler_id, division, rank, rank_number, side,
+                    wins, losses, absences, is_kyujo,
+                    is_yusho, is_jun_yusho, special_prizes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (r["basho_id"], r["wrestler_id"],
+                 r.get("division", "Makuuchi"),
+                 r.get("rank"), r.get("rank_number"), r.get("side"),
+                 r.get("wins", 0), r.get("losses", 0),
                  r.get("absences", 0),
+                 1 if r.get("is_kyujo") else 0,
                  1 if r.get("is_yusho") else 0,
                  1 if r.get("is_jun_yusho") else 0,
                  json.dumps(r.get("special_prizes", []))),
             )
+
+        # Also populate legacy banzuke table for backward compat
+        for r in all_rows:
+            conn.execute(
+                """INSERT OR REPLACE INTO banzuke
+                   (basho_id, wrestler_id, rank, rank_number, side, division, is_kyujo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (r["basho_id"], r["wrestler_id"],
+                 r.get("rank"), r.get("rank_number"), r.get("side"),
+                 (r.get("division") or "Makuuchi").lower(),
+                 1 if r.get("is_kyujo") else 0),
+            )
+
         conn.execute(
             "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
-            ("tournament_records", datetime.now(timezone.utc).isoformat(), len(all_rows)),
+            ("basho_entries", datetime.now(timezone.utc).isoformat(), len(all_rows)),
         )
         conn.commit()
         conn.close()
@@ -436,10 +427,13 @@ class SumoDatabase:
         for r in all_rows:
             conn.execute(
                 """INSERT OR REPLACE INTO bout_records
-                   (basho_id, day, east_id, west_id, winner_id, kimarite)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (basho_id, day, east_id, west_id, winner_id, kimarite,
+                    east_rank, west_rank, division)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (r["basho_id"], r["day"], r["east_id"],
-                 r["west_id"], r["winner_id"], r.get("kimarite")),
+                 r["west_id"], r["winner_id"], r.get("kimarite"),
+                 r.get("east_rank"), r.get("west_rank"),
+                 r.get("division")),
             )
         conn.execute(
             "INSERT OR REPLACE INTO sync_metadata VALUES (?, ?, ?)",
@@ -591,12 +585,13 @@ class SumoDatabase:
         return len(rows)
 
     def upsert_tournament_record(self, tr: TournamentRecord) -> None:
-        """Insert or update a tournament record."""
+        """Insert or update a tournament record into basho_entries."""
         row = {
             "basho_id": tr.basho_id,
             "wrestler_id": tr.wrestler_id,
             "rank": tr.rank.value,
             "rank_number": tr.rank_number,
+            "side": tr.side,
             "wins": tr.wins,
             "losses": tr.losses,
             "absences": tr.absences,
@@ -605,16 +600,17 @@ class SumoDatabase:
             "special_prizes": list(tr.special_prizes),
         }
         if self._online:
-            self._rest_upsert("tournament_records", row, on_conflict="basho_id,wrestler_id")
+            self._rest_upsert("basho_entries", row, on_conflict="basho_id,wrestler_id")
 
         conn = self._local_conn()
         conn.execute(
-            """INSERT OR REPLACE INTO tournament_records
-               (basho_id, wrestler_id, rank, rank_number, wins, losses,
+            """INSERT OR REPLACE INTO basho_entries
+               (basho_id, wrestler_id, rank, rank_number, side, wins, losses,
                 absences, is_yusho, is_jun_yusho, special_prizes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (row["basho_id"], row["wrestler_id"], row["rank"],
-             row["rank_number"], row["wins"], row["losses"],
+             row["rank_number"], row.get("side"),
+             row["wins"], row["losses"],
              row["absences"], 1 if row["is_yusho"] else 0,
              1 if row["is_jun_yusho"] else 0,
              json.dumps(row["special_prizes"])),
@@ -652,12 +648,25 @@ class SumoDatabase:
     def get_roster(self, basho_id: str) -> list[WrestlerProfile]:
         """Get the full roster for a basho as WrestlerProfile objects.
 
-        Rank comes from the banzuke table for the specified basho,
+        Rank comes from basho_entries (or legacy banzuke) for the specified basho,
         so historical queries return the rank at that time, not the current rank.
         """
         conn = self._local_conn()
+
+        # Try basho_entries first, fall back to banzuke
+        be_count = conn.execute(
+            "SELECT COUNT(*) FROM basho_entries WHERE basho_id = ?", (basho_id,)
+        ).fetchone()[0]
+
+        if be_count > 0:
+            source_table = "basho_entries"
+            kyujo_filter = "AND COALESCE(b.is_kyujo, 0) = 0"
+        else:
+            source_table = "banzuke"
+            kyujo_filter = "AND b.is_kyujo = 0"
+
         rows = conn.execute(
-            """SELECT w.wrestler_id, w.shikona, w.heya, w.birth_date,
+            f"""SELECT w.wrestler_id, w.shikona, w.heya, w.birth_date,
                       w.height_cm, w.weight_kg, w.fighting_style, w.country,
                       w.shikona_jp, w.prefecture, w.api_id,
                       w.highest_rank, w.highest_rank_number,
@@ -666,8 +675,8 @@ class SumoDatabase:
                       w.total_yusho,
                       b.rank, b.rank_number, b.side, b.division
                FROM wrestlers w
-               JOIN banzuke b ON w.wrestler_id = b.wrestler_id
-               WHERE b.basho_id = ? AND b.is_kyujo = 0
+               JOIN {source_table} b ON w.wrestler_id = b.wrestler_id
+               WHERE b.basho_id = ? {kyujo_filter}
                ORDER BY
                    CASE b.rank
                        WHEN 'yokozuna' THEN 1
@@ -675,6 +684,7 @@ class SumoDatabase:
                        WHEN 'sekiwake' THEN 3
                        WHEN 'komusubi' THEN 4
                        WHEN 'maegashira' THEN 5
+                       WHEN 'juryo' THEN 6
                    END,
                    b.rank_number""",
             (basho_id,),
@@ -709,83 +719,99 @@ class SumoDatabase:
             for r in rows
         ]
 
+    def _basho_entry_to_tournament_record(self, r) -> TournamentRecord | None:
+        """Convert a basho_entries row to a TournamentRecord model."""
+        try:
+            rank_str = (r["rank"] or "maegashira").lower().split()[0]
+            valid_ranks = {e.value: e for e in Rank}
+            rank = valid_ranks.get(rank_str, Rank.MAEGASHIRA)
+
+            return TournamentRecord(
+                basho_id=r["basho_id"],
+                wrestler_id=r["wrestler_id"],
+                rank=rank,
+                rank_number=_row_get(r, "rank_number"),
+                side=(_row_get(r, "side") or "").lower() or None,
+                wins=r["wins"],
+                losses=r["losses"],
+                absences=_row_get(r, "absences", 0),
+                is_yusho=bool(_row_get(r, "is_yusho", 0)),
+                is_jun_yusho=bool(_row_get(r, "is_jun_yusho", 0)),
+                special_prizes=tuple(json.loads(_row_get(r, "special_prizes", "[]") or "[]")),
+            )
+        except Exception as e:
+            logger.debug(f"Skipped basho entry: {e}")
+            return None
+
     def get_tournament_records(
         self, wrestler_id: str, limit: int = 6
     ) -> list[TournamentRecord]:
-        """Get recent tournament records for a wrestler."""
+        """Get recent tournament records for a wrestler from basho_entries."""
         conn = self._local_conn()
+
+        # Primary: basho_entries
         rows = conn.execute(
-            """SELECT * FROM tournament_records
+            """SELECT * FROM basho_entries
                WHERE wrestler_id = ?
                ORDER BY basho_id DESC LIMIT ?""",
             (wrestler_id, limit),
         ).fetchall()
+
+        # Fallback: tournament_records (legacy data not yet migrated)
+        if not rows:
+            rows = conn.execute(
+                """SELECT * FROM tournament_records
+                   WHERE wrestler_id = ?
+                   ORDER BY basho_id DESC LIMIT ?""",
+                (wrestler_id, limit),
+            ).fetchall()
+
         conn.close()
 
         results = []
         for r in rows:
-            try:
-                rank_str = r["rank"].lower().split()[0] if r["rank"] else "maegashira"
-                valid_ranks = {e.value: e for e in Rank}
-                rank = valid_ranks.get(rank_str, Rank.MAEGASHIRA)
-
-                results.append(TournamentRecord(
-                    basho_id=r["basho_id"],
-                    wrestler_id=r["wrestler_id"],
-                    rank=rank,
-                    rank_number=r["rank_number"],
-                    side=(_row_get(r, "side") or "").lower() or None,
-                    wins=r["wins"],
-                    losses=r["losses"],
-                    absences=_row_get(r, "absences", 0),
-                    is_yusho=bool(_row_get(r, "is_yusho", 0)),
-                    is_jun_yusho=bool(_row_get(r, "is_jun_yusho", 0)),
-                    special_prizes=tuple(json.loads(_row_get(r, "special_prizes", "[]") or "[]")),
-                ))
-            except Exception as e:
-                logger.debug(f"Skipped tournament record: {e}")
-                continue
+            tr = self._basho_entry_to_tournament_record(r)
+            if tr:
+                results.append(tr)
         return results
 
     def get_all_tournament_records(self, basho_id: str = "") -> dict[str, list[TournamentRecord]]:
-        """
-        Get tournament records grouped by wrestler_id.
+        """Get tournament records grouped by wrestler_id from basho_entries.
+
         If basho_id is given, only return records for the most recent 3 basho
         up to and including that basho.
         """
         conn = self._local_conn()
+
+        # Determine source table — prefer basho_entries if it has data
+        be_count = conn.execute("SELECT COUNT(*) FROM basho_entries").fetchone()[0]
+        table = "basho_entries" if be_count > 0 else "tournament_records"
+
         if basho_id:
-            # Get the 3 most recent basho IDs up to the given one
             basho_rows = conn.execute(
-                "SELECT DISTINCT basho_id FROM tournament_records WHERE basho_id <= ? ORDER BY basho_id DESC LIMIT 3",
+                f"SELECT DISTINCT basho_id FROM {table} WHERE basho_id <= ? ORDER BY basho_id DESC LIMIT 3",
                 (basho_id,),
             ).fetchall()
             basho_ids = [b["basho_id"] for b in basho_rows]
+            if not basho_ids:
+                conn.close()
+                return {}
             placeholders = ",".join("?" * len(basho_ids))
             rows = conn.execute(
-                f"SELECT * FROM tournament_records WHERE basho_id IN ({placeholders}) ORDER BY basho_id",
+                f"SELECT * FROM {table} WHERE basho_id IN ({placeholders}) ORDER BY basho_id",
                 basho_ids,
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM tournament_records ORDER BY basho_id"
+                f"SELECT * FROM {table} ORDER BY basho_id"
             ).fetchall()
         conn.close()
 
         records: dict[str, list[TournamentRecord]] = {}
         for r in rows:
-            tr = TournamentRecord(
-                basho_id=r["basho_id"],
-                wrestler_id=r["wrestler_id"],
-                rank=Rank(r["rank"]),
-                rank_number=r["rank_number"],
-                wins=r["wins"],
-                losses=r["losses"],
-                absences=_row_get(r, "absences", 0),
-                is_yusho=bool(r["is_yusho"]),
-                is_jun_yusho=bool(r["is_jun_yusho"]),
-            )
-            records.setdefault(r["wrestler_id"], []).append(tr)
+            tr = self._basho_entry_to_tournament_record(r)
+            if tr:
+                records.setdefault(r["wrestler_id"], []).append(tr)
         return records
 
     def get_bout_records(self, basho_id: str = "") -> list[BoutRecord]:
@@ -834,10 +860,15 @@ class SumoDatabase:
         }
 
     def get_available_basho(self) -> list[str]:
-        """Return list of basho IDs that have banzuke data, newest first."""
+        """Return list of basho IDs that have entry data, newest first."""
         conn = self._local_conn()
+        # Combine basho IDs from both tables
         rows = conn.execute(
-            "SELECT DISTINCT basho_id FROM banzuke ORDER BY basho_id DESC"
+            """SELECT DISTINCT basho_id FROM (
+                   SELECT basho_id FROM basho_entries
+                   UNION
+                   SELECT basho_id FROM banzuke
+               ) ORDER BY basho_id DESC"""
         ).fetchall()
         conn.close()
         return [r["basho_id"] for r in rows]
@@ -1296,58 +1327,38 @@ class SumoDatabase:
 
         Returns:
             {(basho_id, wrestler_id): "Maegashira 5 East"} or similar.
-            Falls back through basho_entries → banzuke → tournament_records.
+            Checks basho_entries first, falls back to legacy banzuke table.
         """
         if not basho_wrestler_pairs:
             return {}
 
         result: dict[tuple[str, str], str] = {}
         conn = self._local_conn()
-
-        # Build a temp table or use batched queries
-        # For efficiency, batch into one query per source table
         unique_pairs = list(set(basho_wrestler_pairs))
 
-        # Try basho_entries first (new table from scrape_full)
         for basho_id, wid in unique_pairs:
+            # Try basho_entries first
             row = conn.execute(
-                """SELECT rank, rank_number, side, division
+                """SELECT rank, rank_number, side
                    FROM basho_entries
                    WHERE basho_id = ? AND wrestler_id = ?""",
                 (basho_id, wid),
             ).fetchone()
-            if row and row["rank"]:
-                rank = row["rank"].capitalize()
-                num = f" {row['rank_number']}" if row["rank_number"] else ""
-                side = f" {row['side'].capitalize()}" if row["side"] else ""
-                result[(basho_id, wid)] = f"{rank}{num}{side}"
-                continue
 
-            # Fall back to banzuke table
-            row = conn.execute(
-                """SELECT rank, rank_number, side
-                   FROM banzuke
-                   WHERE basho_id = ? AND wrestler_id = ?""",
-                (basho_id, wid),
-            ).fetchone()
-            if row and row["rank"]:
-                rank = row["rank"].capitalize()
-                num = f" {row['rank_number']}" if row["rank_number"] else ""
-                side = f" {row['side'].capitalize()}" if row["side"] else ""
-                result[(basho_id, wid)] = f"{rank}{num}{side}"
-                continue
+            # Fall back to banzuke
+            if not row or not row["rank"]:
+                row = conn.execute(
+                    """SELECT rank, rank_number, side
+                       FROM banzuke
+                       WHERE basho_id = ? AND wrestler_id = ?""",
+                    (basho_id, wid),
+                ).fetchone()
 
-            # Fall back to tournament_records
-            row = conn.execute(
-                """SELECT rank, rank_number, side
-                   FROM tournament_records
-                   WHERE basho_id = ? AND wrestler_id = ?""",
-                (basho_id, wid),
-            ).fetchone()
             if row and row["rank"]:
                 rank = row["rank"].capitalize()
                 num = f" {row['rank_number']}" if row["rank_number"] else ""
-                side = f" {_row_get(row, 'side', '').capitalize()}" if _row_get(row, "side") else ""
+                side_val = _row_get(row, "side", "")
+                side = f" {side_val.capitalize()}" if side_val else ""
                 result[(basho_id, wid)] = f"{rank}{num}{side}"
 
         conn.close()
