@@ -38,6 +38,7 @@ from PyQt6.QtWidgets import (
 
 from data.models import Rank, WrestlerProfile
 from gui.bout_panel import BoutPanel
+from gui.data_dialogs import CacheDialog, ScrapeDialog
 from gui.modifier_panel import ModifierPanel
 from gui.rikishi_panel import RikishiDossierPanel
 from gui.tournament_panel import TournamentPanel
@@ -401,11 +402,39 @@ class MainWindow(QMainWindow):
         self._update_status("Export Results: not yet implemented")
 
     def _on_refresh_data(self) -> None:
-        self._update_status("Refreshing data…")
-        # Will be wired to DataManager.refresh_all()
+        """Open the Refresh Scrape dialog."""
+        basho = getattr(self, "_current_basho", "202603") or "202603"
+        basho_id = basho.replace(".", "")
+        dlg = ScrapeDialog(self, current_basho=basho_id)
+        dlg.data_refreshed.connect(self._reload_after_scrape)
+        dlg.exec()
 
     def _on_manage_cache(self) -> None:
-        self._update_status("Cache management: not yet implemented")
+        """Open the Manage Cache dialog."""
+        dlg = CacheDialog(self)
+        dlg.exec()
+
+    def _reload_after_scrape(self) -> None:
+        """Reload the roster and refresh all panels after a scrape completes."""
+        self._update_status("Reloading data after scrape…")
+        try:
+            from data.db import SumoDatabase
+            db = SumoDatabase()
+            basho = getattr(self, "_current_basho", None)
+            if basho:
+                self._roster = db.get_roster(basho)
+                self._refresh_roster_list()
+                self._bout_panel.set_roster(self._roster)
+                self._tournament_panel.set_roster(self._roster)
+                self._dossier_panel.refresh_wrestlers()
+                self._update_status(
+                    f"Data refreshed: {len(self._roster)} wrestlers loaded"
+                )
+            else:
+                self._update_status("Scrape complete — select a basho to load")
+        except Exception as e:
+            logger.error(f"Failed to reload after scrape: {e}")
+            self._update_status(f"Reload error: {e}")
 
     def _on_load_sample_data(self) -> None:
         """Load the built-in sample dataset for immediate use."""

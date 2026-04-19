@@ -89,7 +89,7 @@ class InjuryFatigueModifier(BaseModifier):
         )
         west_fatigue_adj = self._compute_fatigue(
             day=context.day,
-            cumulative_fatigue=context.west.weight_kg,
+            cumulative_fatigue=context.west_cumulative_fatigue,
             weight_kg=context.west.weight_kg,
             max_adjustment=cfg.fatigue_max_adjustment,
         )

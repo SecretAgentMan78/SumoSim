@@ -48,8 +48,8 @@ class WinProbabilityBar(QWidget):
         self._east_prob = 0.5
         self._ci_low = 0.0
         self._ci_high = 1.0
-        self.setMinimumHeight(48)
-        self.setMaximumHeight(56)
+        self.setMinimumHeight(64)
+        self.setMaximumHeight(72)
 
     def set_probability(
         self, east_prob: float, ci_low: float = 0.0, ci_high: float = 1.0
@@ -85,7 +85,7 @@ class WinProbabilityBar(QWidget):
 
         # Percentage labels
         painter.setPen(QColor("white"))
-        font = QFont("Outfit", 14, QFont.Weight.Bold)
+        font = QFont("Outfit", 28, QFont.Weight.Bold)
         painter.setFont(font)
 
         east_pct = f"{self._east_prob * 100:.1f}%"
@@ -126,9 +126,9 @@ class SimulationWorker(QThread):
             result = self._sim.simulate(
                 self._east, self._west,
                 context=self._context,
-                east_history=self._tournament_records.get(self._east.wrestler_id, []),
-                west_history=self._tournament_records.get(self._west.wrestler_id, []),
-                bout_records=self._bout_records,
+                east_tournament_history=self._tournament_records.get(self._east.wrestler_id, []),
+                west_tournament_history=self._tournament_records.get(self._west.wrestler_id, []),
+                bout_history=self._bout_records,
             )
             self.finished.emit(result)
         except Exception as e:
@@ -150,11 +150,6 @@ class BoutPanel(QWidget):
         │  │  Record: 5-3  |  Last: Onosato (D14) │   │
         │  └─────────────────────────────────────┘   │
         │                                             │
-        │  ┌─ Win Probability ───────────────────┐   │
-        │  │ ██████████ 63.2% ░░░░░░░ 36.8%     │   │
-        │  │     95% CI: [58.1% – 68.3%]         │   │
-        │  └─────────────────────────────────────┘   │
-        │                                             │
         │  ┌─ Modifier Impact ───────────────────┐   │
         │  │  Momentum:  +25 (east)  -10 (west)  │   │
         │  │  Matchup:   +15 (east)   0  (west)  │   │
@@ -162,6 +157,13 @@ class BoutPanel(QWidget):
         │  └─────────────────────────────────────┘   │
         │                                             │
         │           [ 🎲 Simulate Bout ]              │
+        │                                             │
+        │  ┌─ Bout Simulation Outcome ─────────────┐ │
+        │  │  Winner: Hoshoryu (East)               │ │
+        │  │  Winning Kimarite: yorikiri (42%)      │ │
+        │  │  ██████████ 63.2% ░░░░░░░ 36.8%       │ │
+        │  │  95% CI: [58.1% – 68.3%]               │ │
+        │  └─────────────────────────────────────┘   │
         └───────────────────────────────────────────┘
     """
 
@@ -306,7 +308,7 @@ class BoutPanel(QWidget):
         east_box = QVBoxLayout()
         east_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         east_label = QLabel("East (東)")
-        east_label.setFont(QFont("Outfit", 11, QFont.Weight.Bold))
+        east_label.setFont(QFont("Outfit", 22, QFont.Weight.Bold))
         east_label.setStyleSheet("color: #8B0000;")
         east_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         east_box.addWidget(east_label)
@@ -320,30 +322,32 @@ class BoutPanel(QWidget):
         east_box.addWidget(self._east_photo, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._east_combo = QComboBox()
-        self._east_combo.setMinimumWidth(240)
+        self._east_combo.setMinimumWidth(300)
+        self._east_combo.setFont(QFont("Outfit", 20))
         self._east_combo.currentIndexChanged.connect(self._on_selection_changed)
         east_box.addWidget(self._east_combo)
 
         self._east_info = QLabel("")
         self._east_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._east_info.setStyleSheet("color: #666; font-size: 12px;")
+        self._east_info.setFont(QFont("Outfit", 20))
+        self._east_info.setStyleSheet("color: #666;")
         east_box.addWidget(self._east_info)
 
         selection_row.addLayout(east_box)
 
         # VS label
         vs_label = QLabel("VS")
-        vs_label.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
+        vs_label.setFont(QFont("Outfit", 40, QFont.Weight.Bold))
         vs_label.setStyleSheet("color: #B8860B;")
         vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vs_label.setMinimumWidth(60)
+        vs_label.setMinimumWidth(80)
         selection_row.addWidget(vs_label)
 
         # West
         west_box = QVBoxLayout()
         west_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         west_label = QLabel("West (西)")
-        west_label.setFont(QFont("Outfit", 11, QFont.Weight.Bold))
+        west_label.setFont(QFont("Outfit", 22, QFont.Weight.Bold))
         west_label.setStyleSheet("color: #00008B;")
         west_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         west_box.addWidget(west_label)
@@ -357,13 +361,15 @@ class BoutPanel(QWidget):
         west_box.addWidget(self._west_photo, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._west_combo = QComboBox()
-        self._west_combo.setMinimumWidth(240)
+        self._west_combo.setMinimumWidth(300)
+        self._west_combo.setFont(QFont("Outfit", 20))
         self._west_combo.currentIndexChanged.connect(self._on_selection_changed)
         west_box.addWidget(self._west_combo)
 
         self._west_info = QLabel("")
         self._west_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._west_info.setStyleSheet("color: #666; font-size: 12px;")
+        self._west_info.setFont(QFont("Outfit", 20))
+        self._west_info.setStyleSheet("color: #666;")
         west_box.addWidget(self._west_info)
 
         selection_row.addLayout(west_box)
@@ -371,31 +377,19 @@ class BoutPanel(QWidget):
 
         # ── Head-to-head group ─────────────────────────────────────
         h2h_group = QGroupBox("Head-to-Head Record")
+        h2h_group.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
         h2h_layout = QVBoxLayout(h2h_group)
         self._h2h_label = QLabel("Select two wrestlers to see their history")
         self._h2h_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._h2h_label.setTextFormat(Qt.TextFormat.RichText)
         self._h2h_label.setWordWrap(True)
-        self._h2h_label.setStyleSheet("font-size: 13px;")
+        self._h2h_label.setFont(QFont("Outfit", 22))
         h2h_layout.addWidget(self._h2h_label)
         layout.addWidget(h2h_group)
 
-        # ── Win probability group ──────────────────────────────────
-        prob_group = QGroupBox("Win Probability")
-        prob_layout = QVBoxLayout(prob_group)
-
-        self._prob_bar = WinProbabilityBar()
-        prob_layout.addWidget(self._prob_bar)
-
-        self._ci_label = QLabel("95% CI: —")
-        self._ci_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._ci_label.setStyleSheet("color: #666; font-size: 12px;")
-        prob_layout.addWidget(self._ci_label)
-
-        layout.addWidget(prob_group)
-
         # ── Modifier impact group ──────────────────────────────────
         mod_group = QGroupBox("Modifier Impact")
+        mod_group.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
         mod_layout = QVBoxLayout(mod_group)
 
         self._modifier_grid = QGridLayout()
@@ -406,16 +400,19 @@ class BoutPanel(QWidget):
         headers = ["Modifier", "East Δ", "West Δ"]
         for col, hdr in enumerate(headers):
             lbl = QLabel(hdr)
-            lbl.setFont(QFont("Outfit", 10, QFont.Weight.Bold))
+            lbl.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._modifier_grid.addWidget(lbl, 0, col)
 
         self._mod_rows: list[tuple[QLabel, QLabel, QLabel]] = []
         for i, name in enumerate(["Momentum", "Matchup", "Injury/Fatigue"]):
             name_lbl = QLabel(name)
+            name_lbl.setFont(QFont("Outfit", 20))
             east_lbl = QLabel("—")
+            east_lbl.setFont(QFont("Outfit", 20))
             east_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             west_lbl = QLabel("—")
+            west_lbl.setFont(QFont("Outfit", 20))
             west_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._modifier_grid.addWidget(name_lbl, i + 1, 0)
             self._modifier_grid.addWidget(east_lbl, i + 1, 1)
@@ -431,14 +428,68 @@ class BoutPanel(QWidget):
 
         self._simulate_btn = QPushButton("🎲  Simulate Bout")
         self._simulate_btn.setObjectName("primary")
-        self._simulate_btn.setMinimumWidth(200)
-        self._simulate_btn.setMinimumHeight(40)
-        self._simulate_btn.setFont(QFont("Outfit", 13))
+        self._simulate_btn.setMinimumWidth(280)
+        self._simulate_btn.setMinimumHeight(50)
+        self._simulate_btn.setFont(QFont("Outfit", 24))
         self._simulate_btn.clicked.connect(self._on_simulate)
         btn_row.addWidget(self._simulate_btn)
 
         btn_row.addStretch()
         layout.addLayout(btn_row)
+
+        # ── Bout Simulation Outcome group ──────────────────────────
+        outcome_group = QGroupBox("Bout Simulation Outcome")
+        outcome_group.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
+        outcome_layout = QVBoxLayout(outcome_group)
+        outcome_layout.setSpacing(10)
+
+        # Winner row
+        winner_row = QHBoxLayout()
+        winner_label = QLabel("Simulation Winner:")
+        winner_label.setFont(QFont("Outfit", 22))
+        winner_row.addWidget(winner_label)
+        self._outcome_winner = QLabel("—")
+        self._outcome_winner.setFont(QFont("Outfit", 26, QFont.Weight.Bold))
+        self._outcome_winner.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        winner_row.addWidget(self._outcome_winner)
+        winner_row.addStretch()
+        outcome_layout.addLayout(winner_row)
+
+        # Kimarite row
+        kim_row = QHBoxLayout()
+        kim_label = QLabel("Winning Kimarite:")
+        kim_label.setFont(QFont("Outfit", 22))
+        kim_row.addWidget(kim_label)
+        self._outcome_kimarite = QLabel("—")
+        self._outcome_kimarite.setFont(QFont("Outfit", 26, QFont.Weight.Bold))
+        self._outcome_kimarite.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        kim_row.addWidget(self._outcome_kimarite)
+        kim_row.addStretch()
+        outcome_layout.addLayout(kim_row)
+
+        # Confidence section header
+        conf_header = QLabel("Simulation Confidence")
+        conf_header.setFont(QFont("Outfit", 20, QFont.Weight.Bold))
+        conf_header.setStyleSheet("color: #666; margin-top: 6px;")
+        outcome_layout.addWidget(conf_header)
+
+        # Probability bar
+        self._prob_bar = WinProbabilityBar()
+        self._prob_bar.setMinimumHeight(64)
+        self._prob_bar.setMaximumHeight(72)
+        outcome_layout.addWidget(self._prob_bar)
+
+        # CI label
+        self._ci_label = QLabel("95% CI: —")
+        self._ci_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._ci_label.setFont(QFont("Outfit", 20))
+        self._ci_label.setStyleSheet("color: #666;")
+        outcome_layout.addWidget(self._ci_label)
+
+        # Initially hidden until first simulation
+        outcome_group.setVisible(False)
+        self._outcome_group = outcome_group
+        layout.addWidget(outcome_group)
 
         layout.addStretch()
 
@@ -539,6 +590,13 @@ class BoutPanel(QWidget):
 
     # ── Simulation ─────────────────────────────────────────────────
 
+    def _get_modifier_panel(self):
+        """Reach the ModifierPanel via the main window."""
+        mw = self._main_window
+        if mw and hasattr(mw, "_modifier_panel"):
+            return mw._modifier_panel
+        return None
+
     def _on_simulate(self) -> None:
         east = self._get_selected_east()
         west = self._get_selected_west()
@@ -550,24 +608,144 @@ class BoutPanel(QWidget):
         self._simulate_btn.setEnabled(False)
         self._simulate_btn.setText("Simulating…")
 
-        # Quick deterministic simulation (runs in-thread for simplicity
-        # in v1.0; background thread used for tournament sims)
         from engine.bout_simulator import BoutSimulator
         from modifiers.base import BoutContext
+        from modifiers.momentum import MomentumModifier
+        from modifiers.matchup import MatchupModifier
+        from modifiers.injury_fatigue import InjuryFatigueModifier
 
-        sim = BoutSimulator()
+        # ── Read modifier settings from the panel ──────────────────
+        panel = self._get_modifier_panel()
+        modifiers = []
+        mod_results = []  # Track individual modifier outputs for display
+
+        if panel:
+            # Momentum
+            mom_settings = panel.get_momentum_settings()
+            mom_mod = MomentumModifier(
+                weight=mom_settings["weight"],
+                streak_window=mom_settings["streak_window"],
+            )
+            modifiers.append(mom_mod)
+
+            # Matchup / Style
+            match_settings = panel.get_matchup_settings()
+            match_mod = MatchupModifier(weight=match_settings["weight"])
+            # Apply custom style matrix if set
+            try:
+                matrix = panel.get_style_matrix()
+                if matrix:
+                    from data.models import FightingStyle
+                    styles = [FightingStyle.OSHI, FightingStyle.YOTSU, FightingStyle.HYBRID]
+                    for r, row in enumerate(matrix):
+                        for c, val in enumerate(row):
+                            if val != 0.0:
+                                match_mod.set_interaction(
+                                    styles[r].value, styles[c].value, val
+                                )
+            except Exception:
+                pass
+            modifiers.append(match_mod)
+
+            # Injury / Fatigue
+            inj_settings = panel.get_injury_fatigue_settings()
+            inj_mod = InjuryFatigueModifier()
+            modifiers.append(inj_mod)
+
+            # Per-wrestler overrides
+            overrides = panel.get_wrestler_overrides()
+        else:
+            overrides = {}
+
+        # ── Build BoutContext with overrides ────────────────────────
         context = BoutContext(east=east, west=west, day=1)
 
-        result = sim.simulate(east, west, context=context)
-        self._display_result(result, east, west)
+        east_ov = overrides.get(east.wrestler_id, {})
+        west_ov = overrides.get(west.wrestler_id, {})
+
+        # Momentum overrides
+        context.east_momentum_override = east_ov.get("momentum")
+        context.west_momentum_override = west_ov.get("momentum")
+
+        # Injury severity
+        context.east_injury_severity = east_ov.get("injury_severity", 0.0)
+        context.west_injury_severity = west_ov.get("injury_severity", 0.0)
+
+        # Style overrides
+        context.east_style_override = east_ov.get("style")
+        context.west_style_override = west_ov.get("style")
+
+        # ── Compute individual modifier results for display ────────
+        for mod in modifiers:
+            if mod.enabled:
+                try:
+                    mr = mod.compute(context)
+                    mod_results.append((mod.name, mr))
+                except Exception as e:
+                    logger.debug(f"Modifier {mod.name} compute failed: {e}")
+
+        # ── Run simulation ─────────────────────────────────────────
+        sim = BoutSimulator(modifiers=modifiers)
+
+        # Get tournament history for both wrestlers
+        east_history = self._tournament_histories.get(east.wrestler_id, [])
+        west_history = self._tournament_histories.get(west.wrestler_id, [])
+
+        result = sim.simulate(
+            east, west,
+            context=context,
+            east_tournament_history=east_history,
+            west_tournament_history=west_history,
+            bout_history=self._bout_records,
+            day=1,
+        )
+
+        # ── Predict kimarite ───────────────────────────────────────
+        kim_confidence = 0.0
+        try:
+            from engine.kimarite_predictor import KimaritePredictor
+            predictor = KimaritePredictor(self._bout_records, self._roster)
+            # Sample from weighted distribution using the actual winner
+            winner_id = result.winner_id
+            loser_id = result.loser_id
+            kim, kim_confidence = predictor.sample_for_winner(winner_id, loser_id)
+            result.predicted_kimarite = kim
+        except Exception as e:
+            logger.debug(f"Kimarite prediction failed: {e}")
+
+        self._display_result(result, east, west, mod_results, kim_confidence)
 
         self._simulate_btn.setEnabled(True)
         self._simulate_btn.setText("🎲  Simulate Bout")
 
     def _display_result(
-        self, result: BoutResult, east: WrestlerProfile, west: WrestlerProfile
+        self, result: BoutResult, east: WrestlerProfile, west: WrestlerProfile,
+        mod_results: list | None = None,
+        kim_confidence: float = 0.0,
     ) -> None:
         self._last_result = result
+
+        # ── Show the outcome group ─────────────────────────────────
+        self._outcome_group.setVisible(True)
+
+        # Winner
+        is_east = result.winner_id == east.wrestler_id
+        winner = east if is_east else west
+        side = "East" if is_east else "West"
+        color = "#8B0000" if is_east else "#00008B"
+        self._outcome_winner.setText(f"{winner.shikona} ({side})")
+        self._outcome_winner.setStyleSheet(f"color: {color};")
+
+        # Kimarite
+        if result.predicted_kimarite:
+            kim_text = result.predicted_kimarite
+            if kim_confidence > 0:
+                kim_text += f"  ({kim_confidence * 100:.0f}% likely)"
+            self._outcome_kimarite.setText(kim_text)
+            self._outcome_kimarite.setStyleSheet(f"color: {color};")
+        else:
+            self._outcome_kimarite.setText("—")
+            self._outcome_kimarite.setStyleSheet("color: #666;")
 
         # Probability bar
         self._prob_bar.set_probability(
@@ -581,8 +759,7 @@ class BoutPanel(QWidget):
         ci_hi = result.confidence_interval_95[1] * 100
         self._ci_label.setText(f"95% CI: [{ci_lo:.1f}% – {ci_hi:.1f}%]")
 
-        # H2H update — restore H2H record with winner highlighted
-        winner = east.shikona if result.winner_id == east.wrestler_id else west.shikona
+        # H2H update
         if self._h2h_index:
             h2h_text = self._get_h2h_text(
                 east.wrestler_id, west.wrestler_id,
@@ -591,10 +768,45 @@ class BoutPanel(QWidget):
             self._h2h_label.setText(h2h_text)
         else:
             self._h2h_label.setText(
-                f"Simulation winner: <b>{winner}</b>"
+                f"<b>{east.shikona}</b> vs <b>{west.shikona}</b>"
             )
 
-        # Modifier rows (will be populated when modifiers are active)
-        for name_lbl, east_lbl, west_lbl in self._mod_rows:
-            east_lbl.setText("0")
-            west_lbl.setText("0")
+        # ── Modifier impact rows ───────────────────────────────────
+        mod_name_map = {"Momentum": 0, "Matchup": 1, "Injury": 2,
+                        "Momentum / Form": 0, "Matchup / Style": 1,
+                        "Injury / Fatigue": 2}
+
+        for _, east_lbl, west_lbl in self._mod_rows:
+            east_lbl.setText("—")
+            east_lbl.setStyleSheet("color: #666;")
+            west_lbl.setText("—")
+            west_lbl.setStyleSheet("color: #666;")
+
+        if mod_results:
+            for mod_name, mr in mod_results:
+                row_idx = mod_name_map.get(mod_name)
+                if row_idx is None:
+                    for key, idx in mod_name_map.items():
+                        if key.lower() in mod_name.lower():
+                            row_idx = idx
+                            break
+                if row_idx is not None and row_idx < len(self._mod_rows):
+                    _, east_lbl, west_lbl = self._mod_rows[row_idx]
+
+                    e_adj = mr.east_adjustment
+                    if e_adj != 0:
+                        adj_color = "#006400" if e_adj > 0 else "#8B0000"
+                        east_lbl.setText(f"{e_adj:+.0f}")
+                        east_lbl.setStyleSheet(f"color: {adj_color}; font-weight: bold;")
+                    else:
+                        east_lbl.setText("0")
+                        east_lbl.setStyleSheet("color: #666;")
+
+                    w_adj = mr.west_adjustment
+                    if w_adj != 0:
+                        adj_color = "#006400" if w_adj > 0 else "#8B0000"
+                        west_lbl.setText(f"{w_adj:+.0f}")
+                        west_lbl.setStyleSheet(f"color: {adj_color}; font-weight: bold;")
+                    else:
+                        west_lbl.setText("0")
+                        west_lbl.setStyleSheet("color: #666;")

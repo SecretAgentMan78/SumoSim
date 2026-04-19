@@ -14,6 +14,9 @@ Usage:
     roster = db.get_roster("2026.03")
     records = db.get_tournament_records("hoshoryu")
     bouts = db.get_bout_records("2026.03")
+
+    # Push local data to empty Supabase tables:
+    db.push_local_to_supabase(["basho_entries", "bout_records"])
 """
 
 from __future__ import annotations
@@ -226,6 +229,23 @@ class SumoDatabase:
                 PRIMARY KEY (basho_id, wrestler_id)
             );
 
+            CREATE TABLE IF NOT EXISTS basho_entries (
+                basho_id        TEXT NOT NULL,
+                wrestler_id     TEXT NOT NULL,
+                division        TEXT NOT NULL DEFAULT 'Makuuchi',
+                rank            TEXT,
+                rank_number     INTEGER,
+                side            TEXT,
+                wins            INTEGER DEFAULT 0,
+                losses          INTEGER DEFAULT 0,
+                absences        INTEGER DEFAULT 0,
+                is_kyujo        INTEGER DEFAULT 0,
+                is_yusho        INTEGER DEFAULT 0,
+                is_jun_yusho    INTEGER DEFAULT 0,
+                special_prizes  TEXT DEFAULT '[]',
+                PRIMARY KEY (basho_id, wrestler_id)
+            );
+
             CREATE TABLE IF NOT EXISTS bout_records (
                 basho_id        TEXT NOT NULL,
                 day             INTEGER NOT NULL,
@@ -235,6 +255,7 @@ class SumoDatabase:
                 kimarite        TEXT,
                 east_rank       TEXT,
                 west_rank       TEXT,
+                division        TEXT,
                 PRIMARY KEY (basho_id, day, east_id, west_id)
             );
 
@@ -265,6 +286,24 @@ class SumoDatabase:
                 injury_severity REAL DEFAULT 0.0
             );
         """)
+        conn.close()
+
+        # Upgrade existing DBs that may be missing new columns/tables
+        self._ensure_local_schema()
+
+    def _ensure_local_schema(self) -> None:
+        """Add columns or tables that may be missing from an older local DB.
+
+        Safe to call repeatedly — uses IF NOT EXISTS and checks PRAGMA.
+        """
+        conn = sqlite3.connect(str(self._db_path))
+
+        # Ensure bout_records has division column
+        bout_cols = {row[1] for row in conn.execute("PRAGMA table_info(bout_records)")}
+        if "division" not in bout_cols:
+            conn.execute("ALTER TABLE bout_records ADD COLUMN division TEXT")
+
+        conn.commit()
         conn.close()
 
     def _local_conn(self) -> sqlite3.Connection:
@@ -508,6 +547,148 @@ class SumoDatabase:
         conn.commit()
         conn.close()
         return len(rows)
+
+    # ================================================================
+    # PUSH: Local SQLite → Supabase (for initial population)
+    # ================================================================
+
+    def push_local_to_supabase(self, tables: list[str] | None = None) -> dict[str, int]:
+        """Push local SQLite data up to Supabase.
+
+        Use this to populate empty Supabase tables from local data.
+        Pushes in batches of 500 with upsert (merge-duplicates).
+
+        Args:
+            tables: List of table names to push. If None, pushes all
+                    data tables (wrestlers, basho_entries, bout_records,
+                    injury_notes, family_relations, modifier_overrides).
+
+        Returns: {table_name: rows_pushed}
+        """
+        if not self._online:
+            logger.warning("Cannot push — Supabase is not connected")
+            return {}
+
+        all_tables = tables or [
+            "wrestlers", "basho_entries", "bout_records",
+            "injury_notes", "family_relations", "modifier_overrides",
+        ]
+
+        results = {}
+        for table in all_tables:
+            try:
+                n = self._push_table(table)
+                results[table] = n
+            except Exception as e:
+                logger.error(f"Failed to push {table}: {e}")
+                results[table] = -1
+
+        logger.info(f"Push complete: {results}")
+        return results
+
+    def _push_table(self, table: str) -> int:
+        """Push a single table from local SQLite to Supabase."""
+        # Table-specific config: (conflict_columns, column_transforms, query)
+        table_config = {
+            "wrestlers": {
+                "on_conflict": "wrestler_id",
+                "transforms": {
+                    "is_active": lambda v: bool(v),
+                },
+                # Only push wrestlers that have at least a shikona
+                # (skips empty stubs that would violate NOT NULL)
+                "query": "SELECT * FROM wrestlers WHERE shikona IS NOT NULL AND shikona != ''",
+            },
+            "basho_entries": {
+                "on_conflict": "basho_id,wrestler_id",
+                "transforms": {
+                    "is_kyujo": lambda v: bool(v),
+                    "is_yusho": lambda v: bool(v),
+                    "is_jun_yusho": lambda v: bool(v),
+                    "special_prizes": lambda v: json.loads(v) if isinstance(v, str) else (v or []),
+                },
+            },
+            "bout_records": {
+                "on_conflict": "basho_id,day,east_id,west_id",
+                "transforms": {},
+            },
+            "injury_notes": {
+                "on_conflict": "basho_id,wrestler_id",
+                "transforms": {},
+            },
+            "family_relations": {
+                "on_conflict": "wrestler_id,related_id",
+                "transforms": {},
+            },
+            "modifier_overrides": {
+                "on_conflict": "wrestler_id",
+                "transforms": {},
+            },
+        }
+
+        config = table_config.get(table)
+        if not config:
+            logger.warning(f"Unknown table for push: {table}")
+            return 0
+
+        conn = self._local_conn()
+        query = config.get("query", f"SELECT * FROM {table}")
+        rows = conn.execute(query).fetchall()
+        conn.close()
+
+        if not rows:
+            return 0
+
+        # Discover which columns Supabase actually has for this table
+        # by fetching a single row with select=* and checking the keys.
+        # Falls back to sending all columns if discovery fails.
+        supabase_cols = None
+        try:
+            probe = self._http.get(f"/{table}", params={"select": "*", "limit": "1"})
+            probe.raise_for_status()
+            probe_rows = probe.json()
+            if probe_rows:
+                supabase_cols = set(probe_rows[0].keys())
+            else:
+                # Empty table — try OPTIONS or just send and let PostgREST tell us
+                # We'll rely on the column definitions endpoint
+                defn = self._http.get(f"/{table}", params={"select": "*", "limit": "0"})
+                # PostgREST returns column info in the response even for 0 rows
+                # if we inspect the schema via a HEAD + content-type parse.
+                # Safest fallback: just use all columns and let errors tell us.
+                supabase_cols = None
+        except Exception:
+            supabase_cols = None
+
+        # Convert sqlite3.Row objects to dicts, applying transforms
+        # and filtering to only columns Supabase knows about
+        transforms = config["transforms"]
+        dicts = []
+        for r in rows:
+            d = dict(r)
+            for col, fn in transforms.items():
+                if col in d:
+                    d[col] = fn(d[col])
+            # Strip columns Supabase doesn't have
+            if supabase_cols is not None:
+                d = {k: v for k, v in d.items() if k in supabase_cols}
+            dicts.append(d)
+
+        # Push in batches
+        batch_size = 500
+        on_conflict = config["on_conflict"]
+        pushed = 0
+        for i in range(0, len(dicts), batch_size):
+            batch = dicts[i:i + batch_size]
+            try:
+                self._rest_upsert(table, batch, on_conflict=on_conflict)
+                pushed += len(batch)
+            except Exception as e:
+                logger.error(f"Batch {i//batch_size + 1} failed for {table}: {e}")
+                # Continue with remaining batches instead of aborting
+                continue
+
+        return pushed
 
     # ================================================================
     # WRITE: Push to Supabase (and sync to local)
